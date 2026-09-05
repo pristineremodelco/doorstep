@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  A daily backup, run by macOS.
+
+  Loaded with:
+    cp tools/com.doorstep.backup.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.doorstep.backup.plist
+
+  RunAtLoad catches the case that matters: a laptop asleep at the scheduled
+  hour never runs the job, and without this it would simply skip that day
+  rather than catching up when the machine wakes.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.doorstep.backup</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-lc</string>
+    <string>cd "$HOME/doorstep" &amp;&amp; /usr/bin/env node tools/backup.mjs</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>3</integer>
+    <key>Minute</key><integer>30</integer>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/tmp/doorstep-backup.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/doorstep-backup.err</string>
+</dict>
+</plist>

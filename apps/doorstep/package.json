@@ -1,0 +1,19 @@
+{
+  "name": "@doorstep/app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:lan": "DOORSTEP_HTTPS=1 vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "vite build && wrangler pages deploy dist --project-name=doorstep --commit-dirty=true"
+  },
+  "dependencies": {
+    "@doorstep/core": "*",
+    "@supabase/supabase-js": "^2.112.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  }
+}

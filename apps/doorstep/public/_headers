@@ -1,0 +1,26 @@
+# Read by Cloudflare Pages at deploy time, not served to anyone.
+#
+# Vite fingerprints everything in /assets, so those filenames change whenever
+# their contents do and they can be cached forever. The files that keep their
+# names cannot be, or a stale copy held anywhere between here and the phone
+# keeps serving yesterday's build.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/index.html
+  Cache-Control: no-cache
+
+/manifest.webmanifest
+  Cache-Control: no-cache
+
+# The camera is the whole app, so the permission is asked for explicitly rather
+# than left to the default. Nothing else is allowed.
+/*
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=(), payment=()
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# The font is fingerprinted by nothing, so it is cached hard by hand. It only
+# changes if the file is replaced, and then its name changes with it.
+/caveat-600.woff2
+  Cache-Control: public, max-age=31536000, immutable

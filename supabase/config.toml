@@ -1,0 +1,40 @@
+project_id = "doorstep"
+
+# Scalars first, then sub-tables. In TOML every key after a [section] header
+# belongs to that section, so a sub-table dropped into the middle silently
+# reassigns everything below it.
+[auth]
+# Where a sign-in link lands by default. Anything not listed below is refused,
+# which is what stops a link being redirected somewhere it should not go.
+site_url = "https://doorstep-9qi.pages.dev"
+additional_redirect_urls = [
+  "https://doorstep-9qi.pages.dev",
+  "https://doorstep-9qi.pages.dev/**",
+  "http://localhost:5180",
+  "http://localhost:5180/**",
+  "https://localhost:5181",
+  "https://localhost:5181/**",
+]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+# One sign-in email per address per minute. Left unset this defaults to a
+# second, which turns the sign-in form into a way to bomb somebody's inbox:
+# anyone can type an address they do not own and hold down the button.
+max_frequency = "1m0s"
+# There is no password to check a change of address against, so an email change
+# has to be confirmed from both the old address and the new one.
+double_confirm_changes = true
+otp_length = 8
+otp_expiry = 3600
+
+# Not used today, but left enrollable rather than switched off as a side effect
+# of writing this file. Turning a capability off should be a decision.
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true

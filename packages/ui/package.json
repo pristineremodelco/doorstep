@@ -1,0 +1,12 @@
+{
+  "name": "@doorstep/ui",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@doorstep/core": "*",
+    "react": "^19.2.8"
+  }
+}

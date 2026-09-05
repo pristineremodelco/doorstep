@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <defs>
+    <filter id="p1" x="-15%" y="-15%" width="130%" height="130%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="7" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="p2" x="-15%" y="-15%" width="130%" height="130%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" seed="21" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="1.65" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+  <rect width="100" height="100" rx="0" fill="#100e0d"/>
+  <g transform="translate(50 51) scale(0.56) translate(-50 -50)">
+    <g fill="none" stroke="#e0954f" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round" filter="url(#p1)">
+      <path d="M18 92 V40 A32 32 0 0 1 82 40 V92 Z"/>
+      <path d="M31 56 V42 A19 19 0 0 1 69 42 V56 Z" fill="#f7cfa4" fill-opacity="0.92"/>
+      <circle cx="70" cy="72" r="4" fill="#f7cfa4" stroke="#f7cfa4"/>
+    </g>
+    <g fill="none" stroke="#e0954f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.45" filter="url(#p2)" transform="translate(0.7 0.6)">
+      <path d="M18 92 V40 A32 32 0 0 1 82 40 V92 Z"/>
+      <path d="M31 56 V42 A19 19 0 0 1 69 42 V56 Z"/>
+    </g>
+  </g>
+</svg>

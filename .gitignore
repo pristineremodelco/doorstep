@@ -1,0 +1,10 @@
+node_modules
+dist
+.env.local
+.env.production
+*.tsbuildinfo
+supabase/.temp
+.supabase-db-password.txt
+apps/doorstep/public/__seed.js
+.hook-secret.txt
+.supabase-service-key.txt

@@ -1,0 +1,5 @@
+# Client-side routing. Every path that is not a real file is served the shell,
+# so an invite link like /i/aBc123 opens the app instead of a 404. The 200 is
+# what makes it a rewrite rather than a redirect: the address bar keeps the
+# token, which is the only place the token ever lives.
+/*  /index.html  200

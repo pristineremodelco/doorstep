@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="22" fill="#100e0d"/>
+  <g transform="translate(50 52) scale(0.78) translate(-50 -50)">
+    <!-- Lit before the door is drawn, so the stroke caps the glass cleanly. A
+         pale pane survives being shrunk where a dark one does not: the contrast
+         runs light-on-dark rather than dark-on-dark. -->
+    <path d="M33 54 V43 A17 17 0 0 1 67 43 V54 Z" fill="#f7cfa4"/>
+    <path d="M18 92 V40 A32 32 0 0 1 82 40 V92 Z"
+          fill="none" stroke="#e0954f" stroke-width="8"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <circle cx="66" cy="66" r="5.5" fill="#f7cfa4"/>
+</svg>
