@@ -1157,3 +1157,30 @@ export async function markPassword (
 ): Promise<void> {
   await db.auth.updateUser ({ data: { has_secret: has } })
 }
+
+/**
+ * Does this look like a deliverable address?
+ *
+ * Deliberately shallow. It wants a name, an at sign, and a domain with a dot
+ * and something after it, which is enough to catch a half typed address and an
+ * empty box. It is not a validity check and cannot be one: the only thing that
+ * proves an address works is sending to it.
+ *
+ * Worth being clear about the limit, because it is the interesting part. A
+ * perfectly formed address belonging to an abandoned mailbox passes this and
+ * always will. Nothing typed into a box can tell you somebody stopped reading
+ * their email two years ago.
+ */
+export function looksLikeEmail (value: string): boolean {
+  const v = value.trim ()
+  if (v.length < 6 || v.length > 254) return false
+  if (/\s/.test (v)) return false
+  const at = v.indexOf ('@')
+  if (at < 1 || at !== v.lastIndexOf ('@')) return false
+  const domain = v.slice (at + 1)
+  if (!domain.includes ('.')) return false
+  // No empty labels, and a last label of at least two letters.
+  const labels = domain.split ('.')
+  if (labels.some ((l) => l.length === 0)) return false
+  return /^[A-Za-z]{2,}$/.test (labels[labels.length - 1]!)
+}

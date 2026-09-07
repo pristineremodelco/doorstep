@@ -255,3 +255,10 @@ that way an update isnt lost due to android caching, and data cant be lost due t
 can you create 200 sample accounts, to verify that they have qr codes that are actually able to be differentiated between.
 
 once an account exists on the doorstep app, i feel people should be able to add a password or pin optionally to their sign in through account. i would rather just type my email and click, "Come In", as the sign in entry button. some people would prefer also have a password. if you have no password or pin there should be a pricacy warning in the account settings, with a dismiss and a dont show again checkbox
+
+---
+### 2026-09-07 11:31
+
+thats my moms email, she doesnt use jonemontl@yahoo any more. but the other one is real, i accidentally tried the first one and realized she has discontinued her use of that old spam junk email account
+
+is it possible for the come in button to not appear unless the email account is a registered user, if not, is it at least possible to make it grayed out until a full email with a real "@company.com" end

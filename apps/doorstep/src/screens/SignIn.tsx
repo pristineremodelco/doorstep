@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react'
 import {
-  sendSignInLink, signInFromLink, signInWithCode, signInWithPassword,
+  looksLikeEmail, sendSignInLink, signInFromLink, signInWithCode,
+  signInWithPassword,
 } from '@doorstep/core'
 import { db, redirectTo } from '../db'
-import { remembering, roster, setRemembering } from '../accounts'
+import { forgetAll, remembering, roster, setRemembering } from '../accounts'
 import { installed, isIOS } from '../push'
 
 /**
@@ -26,7 +27,12 @@ export function SignIn () {
   // password would answer a different question out loud: whether it has an
   // account at all.
   const [usingSecret, setUsingSecret] = useState (false)
-  const known = roster ()
+  const [forgot, setForgot] = useState (false)
+  // Grey until the address could plausibly be delivered to, and until a secret
+  // has been typed when one is being used.
+  const addressLooksRight = looksLikeEmail (email)
+  const canSubmit = addressLooksRight && (!usingSecret || secret.length > 0)
+  const known = forgot ? [] : roster ()
   // A home screen app on an iPhone is the case that needs the paste, and the
   // case where the ordinary instruction is actively wrong.
   const inApp = isIOS () && installed ()
@@ -98,7 +104,11 @@ export function SignIn () {
               value={pasted}
               onChange={(e) => setPasted (e.target.value)}
             />
-            <button className="btn btn-primary btn-wide" type="submit" disabled={busy || !pasted.trim ()}>
+            <button
+              className="btn btn-primary btn-wide"
+              type="submit"
+              disabled={busy || pasted.trim ().length < 8}
+            >
               {busy ? 'Signing in' : 'Sign me in'}
             </button>
           </form>
@@ -130,7 +140,11 @@ export function SignIn () {
                 value={code}
                 onChange={(e) => setCode (e.target.value)}
               />
-              <button className="btn btn-quiet" type="submit" disabled={busy || !code.trim ()}>
+              <button
+                className="btn btn-quiet"
+                type="submit"
+                disabled={busy || code.trim ().length < 6}
+              >
                 Use the code
               </button>
             </form>
@@ -170,9 +184,23 @@ export function SignIn () {
         {known.length > 0 && (
           <p className="muted fine">
             {known.length === 1 ? 'Last signed in as' : 'Recently signed in as'}{' '}
-            {known.map ((a) => a.email).join (', ')}
+            {/* Two at most. This was every address the browser had ever
+                remembered, which on a device used by more than one person is a
+                list of who has been here, printed on the screen before anyone
+                has signed in. */}
+            {known.slice (0, 2).map ((a) => a.email).join (', ')}
+            {known.length > 2 && ` and ${known.length - 2} more`}
+            {'. '}
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => { forgetAll (); setForgot (true) }}
+            >
+              Forget them
+            </button>
           </p>
         )}
+        {forgot && <p className="muted fine">Cleared from this device.</p>}
 
         {/* Asked, not assumed. Someone borrowing a phone to send one message
             should not be left signed in on it, and that is exactly the case
@@ -203,13 +231,14 @@ export function SignIn () {
           />
         )}
 
-        <button className="btn btn-primary btn-wide" type="submit" disabled={busy}>
+        <button className="btn btn-primary btn-wide" type="submit" disabled={busy || !canSubmit}>
           {busy ? (usingSecret ? 'Signing in' : 'Sending') : 'Come In'}
         </button>
 
         <button
           type="button"
           className="link-btn"
+          disabled={!addressLooksRight}
           onClick={() => { setUsingSecret (!usingSecret); setError (null) }}
         >
           {usingSecret

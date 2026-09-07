@@ -352,7 +352,19 @@ body {
 }
 
 .btn:active:not(:disabled) { transform: scale(0.96); }
-.btn:disabled { opacity: 0.4; cursor: default; }
+
+/* A disabled button goes properly grey rather than merely faint. A washed out
+   accent still reads as the accent, so it looks like the app is being slow
+   rather than like the button is waiting for something from you. */
+.btn:disabled {
+  opacity: 1;
+  cursor: default;
+  background: var(--raised-high);
+  color: var(--ink-quiet);
+}
+
+.btn-quiet:disabled { background: transparent; }
+.link-btn:disabled { color: var(--line); cursor: default; text-decoration: none; }
 
 .btn:focus-visible {
   outline: 2px solid var(--warm);

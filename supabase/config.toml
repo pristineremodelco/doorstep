@@ -31,7 +31,12 @@ max_frequency = "1m0s"
 # has to be confirmed from both the old address and the new one.
 double_confirm_changes = true
 otp_length = 8
-otp_expiry = 3600
+# Thirty minutes. An hour was generous to the wrong party: a sign-in link is a
+# key to the account sitting in an inbox, and the longer it lies there the more
+# chances there are for it to be read by somebody else. Thirty is long enough to
+# find the email on a phone and short enough that a forwarded or leaked one is
+# usually already dead.
+otp_expiry = 1800
 
 # Not used today, but left enrollable rather than switched off as a side effect
 # of writing this file. Turning a capability off should be a decision.
