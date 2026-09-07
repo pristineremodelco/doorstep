@@ -1987,3 +1987,22 @@ p[data-warn="true"] {
   text-align: center;
 }
 .centered-text { text-align: center; max-width: 34ch; }
+
+/* --------------------------------------------------------------- warning --- */
+
+/* Marked by a rule down the side as well as a tint, so it still reads as a
+   warning with colour blind assist on or a custom accent chosen. */
+.warn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--live-solid);
+  border-radius: var(--radius);
+  background: var(--raised-high);
+}
+
+.warn p { margin: 0; font-size: 14px; line-height: 1.45; }
+.warn-title { font-weight: 640; color: var(--live-solid); }
+.warn .checkline { padding: var(--s-2); border: 0; }

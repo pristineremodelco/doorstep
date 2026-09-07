@@ -4,6 +4,7 @@ import {
   AUTO_ARCHIVE_CHOICES, RETENTION_CHOICES, avatarUrl, changeEmail,
   deleteAccount, exportEverything, formatBytes, formatDuration,
   listBlockedPeople, runAutoArchive, setAutoArchive, setDisplayName,
+  MIN_SECRET_LENGTH, hasPassword, markPassword, removePassword, setPassword,
   setRetention, signOut as endSession, squareAvatar, storageSummary, suggest,
   touchLastSeen, unblockPerson, uploadAvatar,
   type AutoArchiveDays, type Capture, type Facing, type RetentionMonths,
@@ -475,6 +476,11 @@ function SettingsScreen ({
         <section className="field">
           <h2>How you sign in</h2>
           <SignInIdentity email={email} />
+        </section>
+
+        <section className="field">
+          <h2>Password or PIN</h2>
+          <SecretPanel />
         </section>
       </SettingsSection>
 
@@ -1179,6 +1185,150 @@ function SuggestPanel () {
       </button>
       {error && <p className="capture-error">{error}</p>}
     </form>
+  )
+}
+
+/**
+ * Setting an optional secret, and saying plainly what having none means.
+ *
+ * The warning is not scolding. Without a secret the account is exactly as safe
+ * as the email account, because anyone who can read that inbox can request a
+ * link and sign in as you from anywhere. That is a perfectly reasonable trade
+ * and most people should take it, but it should be a choice made rather than a
+ * thing discovered.
+ */
+function SecretPanel () {
+  const [has, setHas] = useState<boolean | null> (null)
+  const [secret, setSecret] = useState ('')
+  const [again, setAgain] = useState ('')
+  const [busy, setBusy] = useState (false)
+  const [error, setError] = useState<string | null> (null)
+  const [done, setDone] = useState (false)
+  const [muted, setMuted] = useState (() => {
+    try { return localStorage.getItem ('doorstep.secret.warned') === 'never' } catch { return false }
+  })
+  const [dismissed, setDismissed] = useState (false)
+
+  useEffect (() => {
+    if (!db) return
+    void hasPassword (db).then (setHas)
+  }, [])
+
+  const save = async () => {
+    if (!db) return
+    if (secret !== again) { setError ('Those two do not match.'); return }
+    setBusy (true)
+    setError (null)
+    try {
+      await setPassword (db, secret)
+      await markPassword (db, true)
+      setHas (true)
+      setSecret (''); setAgain (''); setDone (true)
+    } catch (e) {
+      setError (e instanceof Error ? e.message : 'Could not set that.')
+    } finally {
+      setBusy (false)
+    }
+  }
+
+  const isPin = /^\d+$/.test (secret)
+
+  return (
+    <div className="theme-row">
+      {has === false && !muted && !dismissed && (
+        <div className="warn">
+          <p className="warn-title">You have no password set</p>
+          <p>
+            Anyone who can open your email can sign in as you, from any device,
+            without your phone. That is the whole of the security on this
+            account today.
+          </p>
+          <label className="checkline">
+            <input
+              type="checkbox"
+              onChange={(e) => {
+                setMuted (e.target.checked)
+                try {
+                  localStorage.setItem ('doorstep.secret.warned', e.target.checked ? 'never' : '')
+                } catch { /* not essential */ }
+              }}
+            />
+            <span><span className="checkline-title">Do not show this again</span></span>
+          </label>
+          <div className="nudge-actions">
+            <button className="link-btn" onClick={() => setDismissed (true)}>Dismiss</button>
+          </div>
+        </div>
+      )}
+
+      <p className="muted fine">
+        {has === null
+          ? 'Checking'
+          : has
+            ? 'You have one set. You can still sign in with an emailed link at any time.'
+            : 'Optional. Without one, an emailed link is the only way in, which is fine and is one fewer thing to forget.'}
+      </p>
+
+      <input
+        className="input"
+        type="password"
+        autoComplete="new-password"
+        placeholder={has ? 'A new password or PIN' : 'A password or PIN'}
+        value={secret}
+        onChange={(e) => { setSecret (e.target.value); setDone (false) }}
+      />
+      <input
+        className="input"
+        type="password"
+        autoComplete="new-password"
+        placeholder="Type it again"
+        value={again}
+        onChange={(e) => setAgain (e.target.value)}
+      />
+
+      {secret.length > 0 && secret.length < MIN_SECRET_LENGTH && (
+        <p className="muted fine">At least {MIN_SECRET_LENGTH} characters.</p>
+      )}
+      {isPin && secret.length >= MIN_SECRET_LENGTH && (
+        <p className="muted fine">
+          A {secret.length} digit PIN is one of {(10 ** secret.length).toLocaleString ()}{' '}
+          possibilities. Fine for a phone in your pocket, weaker than words.
+        </p>
+      )}
+
+      <div className="row">
+        <button
+          className="btn btn-quiet"
+          disabled={busy || secret.length < MIN_SECRET_LENGTH}
+          onClick={() => void save ()}
+        >
+          {busy ? 'Saving' : has ? 'Change it' : 'Set it'}
+        </button>
+        {has && (
+          <button
+            className="link-btn"
+            disabled={busy}
+            onClick={async () => {
+              if (!db) return
+              setBusy (true)
+              try {
+                await removePassword (db)
+                await markPassword (db, false)
+                setHas (false)
+                setDone (false)
+              } finally {
+                setBusy (false)
+              }
+            }}
+          >
+            Remove it
+          </button>
+        )}
+      </div>
+
+      {done && <p className="muted fine">Saved. It works on any device.</p>}
+      {error && <p className="capture-error">{error}</p>}
+    </div>
   )
 }
 

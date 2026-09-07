@@ -248,3 +248,10 @@ eventually this may be fully public in the sense that i will do some advertising
 i also want a pwa update prompt that snapshots localStorage and IndexedDB to a timestamped back up before applying the update, with automatic restore if the new version fails to load its data.
 
 that way an update isnt lost due to android caching, and data cant be lost due to schema change or overwritten text, etc.
+
+---
+### 2026-09-07 11:17
+
+can you create 200 sample accounts, to verify that they have qr codes that are actually able to be differentiated between.
+
+once an account exists on the doorstep app, i feel people should be able to add a password or pin optionally to their sign in through account. i would rather just type my email and click, "Come In", as the sign in entry button. some people would prefer also have a password. if you have no password or pin there should be a pricacy warning in the account settings, with a dismiss and a dont show again checkbox

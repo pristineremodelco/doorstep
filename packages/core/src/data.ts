@@ -1087,3 +1087,73 @@ export async function resetPersonalCode (
   })
   return { token: made.token, url: made.url }
 }
+
+// -------------------------------------------------------- password or pin ----
+
+/**
+ * A secret you type, instead of waiting for an email.
+ *
+ * Optional on purpose. A link in your inbox is genuinely enough for most
+ * people, and it is one fewer thing to forget. What it does mean is that your
+ * account is exactly as safe as your email: anybody who can read that inbox can
+ * sign in as you, on any device, without your phone. Setting a secret closes
+ * that, which is why the app says so when there isn't one.
+ *
+ * A PIN is just a short password here. Supabase will not take fewer than six
+ * characters, and a six digit number is a million guesses, so it is offered
+ * with that said plainly rather than pretended to be equivalent.
+ */
+export const MIN_SECRET_LENGTH = 6
+
+export async function setPassword (
+  db: SupabaseClient, secret: string
+): Promise<void> {
+  if (secret.trim ().length < MIN_SECRET_LENGTH) {
+    throw new Error (`That needs at least ${MIN_SECRET_LENGTH} characters.`)
+  }
+  const { error } = await db.auth.updateUser ({ password: secret })
+  if (error) throw error
+}
+
+export async function removePassword (db: SupabaseClient): Promise<void> {
+  // Supabase has no "unset". A long random one nobody knows is the same thing
+  // in practice: the account falls back to the emailed link, which always works.
+  const bytes = new Uint8Array (32)
+  crypto.getRandomValues (bytes)
+  const scrambled = [...bytes].map ((b) => b.toString (36)).join ('')
+  const { error } = await db.auth.updateUser ({ password: scrambled })
+  if (error) throw error
+}
+
+export async function signInWithPassword (
+  db: SupabaseClient, email: string, secret: string
+): Promise<void> {
+  const { error } = await db.auth.signInWithPassword ({
+    email: email.trim ().toLowerCase (),
+    password: secret,
+  })
+  if (error) {
+    // Deliberately one message for a wrong secret and an address with no
+    // account: telling them apart is a way to find out who has an account here.
+    throw new Error ('That address and secret do not match. Try the emailed link instead.')
+  }
+}
+
+/**
+ * Whether this account has a secret set.
+ *
+ * Recorded by the app when one is set, because Supabase does not report it.
+ * Only ever used to decide whether to show the warning, never to decide what a
+ * sign-in is allowed to do.
+ */
+export async function hasPassword (db: SupabaseClient): Promise<boolean> {
+  const { data } = await db.auth.getUser ()
+  const flag = data.user?.user_metadata?.has_secret
+  return flag === true
+}
+
+export async function markPassword (
+  db: SupabaseClient, has: boolean
+): Promise<void> {
+  await db.auth.updateUser ({ data: { has_secret: has } })
+}

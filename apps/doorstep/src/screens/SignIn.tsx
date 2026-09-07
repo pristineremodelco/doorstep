@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react'
-import { sendSignInLink, signInFromLink, signInWithCode } from '@doorstep/core'
+import {
+  sendSignInLink, signInFromLink, signInWithCode, signInWithPassword,
+} from '@doorstep/core'
 import { db, redirectTo } from '../db'
 import { remembering, roster, setRemembering } from '../accounts'
 import { installed, isIOS } from '../push'
@@ -19,6 +21,11 @@ export function SignIn () {
   const [stay, setStay] = useState (remembering)
   const [pasted, setPasted] = useState ('')
   const [code, setCode] = useState ('')
+  const [secret, setSecret] = useState ('')
+  // Offered rather than detected. Asking the server whether an address has a
+  // password would answer a different question out loud: whether it has an
+  // account at all.
+  const [usingSecret, setUsingSecret] = useState (false)
   const known = roster ()
   // A home screen app on an iPhone is the case that needs the paste, and the
   // case where the ordinary instruction is actively wrong.
@@ -31,10 +38,14 @@ export function SignIn () {
     if (!address) return
     setBusy (true)
     setError (null)
-    // Decided before the link is sent, because it determines where the session
-    // is written the moment that link is opened.
+    // Decided before anything else, because it determines where the session is
+    // written the moment one exists.
     setRemembering (stay)
     try {
+      if (usingSecret) {
+        await signInWithPassword (db, address, secret)
+        return
+      }
       await sendSignInLink (db, address, redirectTo)
       setSent (true)
     } catch (err) {
@@ -181,17 +192,39 @@ export function SignIn () {
           </span>
         </label>
 
+        {usingSecret && (
+          <input
+            className="input"
+            type="password"
+            autoComplete="current-password"
+            placeholder="Your password or PIN"
+            value={secret}
+            onChange={(e) => setSecret (e.target.value)}
+          />
+        )}
+
         <button className="btn btn-primary btn-wide" type="submit" disabled={busy}>
-          {busy ? 'Sending' : 'Send me a link'}
+          {busy ? (usingSecret ? 'Signing in' : 'Sending') : 'Come In'}
         </button>
+
+        <button
+          type="button"
+          className="link-btn"
+          onClick={() => { setUsingSecret (!usingSecret); setError (null) }}
+        >
+          {usingSecret
+            ? 'Email me a link instead'
+            : 'I have a password or PIN'}
+        </button>
+
         {error && <p className="capture-error">{error}</p>}
         <p className="muted fine">
           Signing in and signing up are the same thing here. Enter the address
           you used before and it brings your conversations back.
         </p>
         <p className="muted fine">
-          No password. No phone number. People reach you only through a link you
-          send them.
+          A password is optional. No phone number, ever. People reach you only
+          through a link or a code you gave them.
         </p>
       </form>
     </main>
