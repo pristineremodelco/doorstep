@@ -262,3 +262,10 @@ once an account exists on the doorstep app, i feel people should be able to add 
 thats my moms email, she doesnt use jonemontl@yahoo any more. but the other one is real, i accidentally tried the first one and realized she has discontinued her use of that old spam junk email account
 
 is it possible for the come in button to not appear unless the email account is a registered user, if not, is it at least possible to make it grayed out until a full email with a real "@company.com" end
+
+---
+### 2026-09-07 11:47
+
+if i have her scan my qr from my phone, that will solve that currently correct
+
+with the supabase sign up link, its not branded with doorstep and a logo, is that possible to change, since most people will be confused about what supabase is.

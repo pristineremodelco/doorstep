@@ -44,11 +44,35 @@ otp_expiry = 1800
 enroll_enabled = true
 verify_enabled = true
 
-# A custom sign-in email is written and ready at supabase/templates/magic_link.html,
-# leading with a code rather than a link. It cannot be switched on yet: Supabase
-# refuses template changes on the free plan while using their built-in mail
-# sender. Adding any custom SMTP provider unlocks it, and is worth doing anyway
-# because the built-in sender is rate limited to a handful of emails an hour.
+# Mail.
+#
+# Supabase's built-in sender allows two auth emails an hour and is documented as
+# not for production. Two is nothing: one person signing up and one mistyping
+# their address exhausts it, and the next person is refused with a rate limit
+# error they cannot do anything about. It also refuses to let the template be
+# changed on the free plan, which is why the sign-in email arrives unbranded.
+#
+# Any custom SMTP provider fixes both at once, free. Fill in the four values
+# below, uncomment this block and the template block under it, and run
+# `supabase config push`. Nothing else needs to change.
+#
+# Providers with a permanent free tier, as of writing:
+#   Brevo    300 a day, and will verify a single address, so no domain needed
+#   Resend   3000 a month, but wants a domain it can verify
+#   Postmark small free tier, strong deliverability
+#
+# [auth.email.smtp]
+# enabled = true
+# host = "smtp-relay.brevo.com"
+# port = 587
+# user = "PUT THE SMTP LOGIN HERE"
+# pass = "env(DOORSTEP_SMTP_PASS)"
+# admin_email = "pristineremodelco@gmail.com"
+# sender_name = "Doorstep"
+
+# The branded email, leading with a code rather than a link. Ready to switch on
+# the moment the block above is filled in; Supabase refuses template changes
+# while the built-in sender is in use.
 #
 # [auth.email.template.magic_link]
 # subject = "Your Doorstep code"

@@ -209,6 +209,12 @@ If you would rather match Almanac's Git integration than upload directly, the
 Pages build settings are: build command `npm run build`, output directory
 `apps/doorstep/dist`, and leave the root directory at the repository root.
 
+## The sign-in email
+
+Unbranded, and capped at two an hour by Supabase's built-in sender. Both have
+the same fix and it is free. See EMAIL.md; the template and the config block are
+already written and waiting to be switched on.
+
 ## Open questions
 
 - Auth for the friends side: email link, or something else.
