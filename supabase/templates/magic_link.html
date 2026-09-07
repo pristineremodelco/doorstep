@@ -1,0 +1,29 @@
+<!--
+  The sign-in email.
+
+  It carries a code as well as a link, and the code comes first, because of a
+  trap specific to iPhones: tapping a link in Mail or Gmail opens Safari, and a
+  site added to the home screen has its own separate storage. So the session
+  lands in Safari and the installed app is still signed out, and tapping the
+  link again does the same thing. Somebody can loop forever.
+
+  A code is typed into whichever window is actually open, so it always signs in
+  the thing in front of you.
+-->
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;line-height:1.5;color:#1a1613;max-width:480px">
+  <h2 style="font-size:20px;font-weight:600;margin:0 0 6px">Your Doorstep code</h2>
+  <p style="margin:0 0 18px;color:#554c44">Type this into the app that is open on your phone.</p>
+
+  <p style="font-size:34px;font-weight:700;letter-spacing:.14em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;margin:0 0 22px">{{ .Token }}</p>
+
+  <p style="margin:0 0 8px;color:#554c44">Or open this link, which signs in whichever browser opens it:</p>
+  <p style="margin:0 0 22px"><a href="{{ .ConfirmationURL }}" style="color:#c97b35">Sign in to Doorstep</a></p>
+
+  <p style="margin:0;font-size:13px;color:#7d726a">
+    If you added Doorstep to your home screen, use the code. A link opens your
+    browser instead, and the two do not share a sign-in.
+  </p>
+  <p style="margin:10px 0 0;font-size:13px;color:#7d726a">
+    You did not ask for this? Ignore it and nothing happens.
+  </p>
+</div>

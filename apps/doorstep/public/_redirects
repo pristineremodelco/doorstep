@@ -1,5 +1,10 @@
-# Client-side routing. Every path that is not a real file is served the shell,
-# so an invite link like /i/aBc123 opens the app instead of a 404. The 200 is
-# what makes it a rewrite rather than a redirect: the address bar keeps the
-# token, which is the only place the token ever lives.
-/*  /index.html  200
+# Only the invite path is handled by the app rather than by a file.
+#
+# This was `/*  /index.html  200`, which was too wide: it also swallowed real
+# files. /version.json came back as the app shell, so the update check compared
+# its build against a page of HTML and never saw an update. A wildcard also
+# turns every typo into a silent copy of the app instead of a 404.
+#
+# The 200 makes it a rewrite rather than a redirect, so the address bar keeps
+# the token, which is the only place the token ever lives.
+/i/*  /index.html  200

@@ -16,6 +16,7 @@ import {
 import { forget, forgetAll, roster, setRemembering } from './accounts'
 import { SettingsSection } from './SettingsSection'
 import { clearRecorded, errorDigest, recorded } from './errors'
+import { applyUpdate, checkForUpdate, dismissUpdate } from './updates'
 import { nextGreeting } from './greeting'
 import { ColorPicker } from './ColorPicker'
 import {
@@ -27,6 +28,7 @@ import { configured, db, redirectTo } from './db'
 import { useRoute } from './router'
 import { SessionProvider, useSession } from './session'
 import { SignIn } from './screens/SignIn'
+import { MyCode } from './screens/MyCode'
 import { Threads } from './screens/Threads'
 import { Thread } from './screens/Thread'
 import { InviteClaim } from './screens/InviteClaim'
@@ -94,10 +96,10 @@ function loadSettings (): Settings {
   }
 }
 
-export function App () {
+export function App ({ recovered = false }: { recovered?: boolean }) {
   return (
     <SessionProvider>
-      <Shell />
+      <Shell recovered={recovered} />
     </SessionProvider>
   )
 }
@@ -107,7 +109,7 @@ type View =
   | { name: 'thread'; id: string; who: string }
   | { name: 'settings' }
 
-function Shell () {
+function Shell ({ recovered }: { recovered: boolean }) {
   const { session, profile, loading, refreshProfile } = useSession ()
   const [route, go] = useRoute ()
   const [view, setView] = useState<View> ({ name: 'threads' })
@@ -219,10 +221,17 @@ function Shell () {
       />
 
       {view.name === 'threads' && (
-        <>
-          <PushNudge />
-          <Threads onOpen={(id, who) => setView ({ name: 'thread', id, who })} />
-        </>
+        <Pager
+          left={
+            <>
+              {recovered && <RecoveredNote />}
+              <UpdateNudge />
+              <PushNudge />
+              <Threads onOpen={(id, who) => setView ({ name: 'thread', id, who })} />
+            </>
+          }
+          right={<MyCode />}
+        />
       )}
 
       {view.name === 'thread' && (
@@ -304,6 +313,57 @@ function NameSetup ({ onDone }: { onDone: () => Promise<void> }) {
         {error && <p className="capture-error">{error}</p>}
       </form>
     </main>
+  )
+}
+
+/**
+ * Two screens, swiped between.
+ *
+ * Native scrolling with snap points rather than a gesture library, so it has
+ * the browser's own momentum and rubber band, and works with a trackpad and
+ * arrow keys without any of that being written. The dots are both an indicator
+ * and a control, because a swipe is invisible to anyone who has not discovered
+ * it.
+ */
+function Pager ({ left, right }: { left: React.ReactNode; right: React.ReactNode }) {
+  const rail = useRef<HTMLDivElement> (null)
+  const [page, setPage] = useState (0)
+
+  useEffect (() => {
+    const el = rail.current
+    if (!el) return
+    const onScroll = () => {
+      setPage (Math.round (el.scrollLeft / el.clientWidth))
+    }
+    el.addEventListener ('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener ('scroll', onScroll)
+  }, [])
+
+  const go = (i: number) => {
+    const el = rail.current
+    if (el) el.scrollTo ({ left: i * el.clientWidth, behavior: 'smooth' })
+  }
+
+  return (
+    <>
+      <div className="pager" ref={rail}>
+        <div className="page">{left}</div>
+        <div className="page">{right}</div>
+      </div>
+      <div className="pager-dots" role="tablist" aria-label="Screens">
+        {['Conversations', 'Your code'].map ((label, i) => (
+          <button
+            key={label}
+            className="pager-dot"
+            data-here={page === i}
+            role="tab"
+            aria-selected={page === i}
+            aria-label={label}
+            onClick={() => go (i)}
+          />
+        ))}
+      </div>
+    </>
   )
 }
 
@@ -733,6 +793,78 @@ function SettingsScreen ({
         <SuggestPanel />
       </SettingsSection>
     </main>
+  )
+}
+
+/**
+ * Said once, after an update was put back.
+ *
+ * Restoring somebody's data underneath them without a word would be the kind of
+ * quiet magic that is impossible to trust.
+ */
+function RecoveredNote () {
+  const [hidden, setHidden] = useState (false)
+  if (hidden) return null
+  return (
+    <div className="nudge">
+      <p>
+        The last update did not come up properly, so everything on this phone was
+        put back the way it was. Nothing was lost.
+      </p>
+      <div className="nudge-actions">
+        <button className="link-btn" onClick={() => setHidden (true)}>Right</button>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * A new version is being served.
+ *
+ * Offered rather than applied, because an update reloads the page and doing
+ * that unasked can land in the middle of a recording. A snapshot is taken
+ * before anything changes, so saying yes is never a gamble.
+ */
+function UpdateNudge () {
+  const [build, setBuild] = useState<string | null> (null)
+  const [busy, setBusy] = useState (false)
+
+  useEffect (() => {
+    void checkForUpdate ().then (setBuild)
+    // Checked again on return, which is when a phone has usually been asleep
+    // through whatever was deployed.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void checkForUpdate ().then (setBuild)
+    }
+    document.addEventListener ('visibilitychange', onVisible)
+    return () => document.removeEventListener ('visibilitychange', onVisible)
+  }, [])
+
+  if (!build) return null
+
+  return (
+    <div className="nudge">
+      <p>There is a newer version of Doorstep.</p>
+      <p className="muted fine">
+        Your settings, unsent recordings and drafts are copied first, and put
+        back automatically if the new version does not come up properly.
+      </p>
+      <div className="nudge-actions">
+        <button
+          className="link-btn"
+          onClick={() => { dismissUpdate (build); setBuild (null) }}
+        >
+          Not now
+        </button>
+        <button
+          className="btn btn-primary"
+          disabled={busy}
+          onClick={async () => { setBusy (true); await applyUpdate (build) }}
+        >
+          {busy ? 'Copying first' : 'Update'}
+        </button>
+      </div>
+    </div>
   )
 }
 

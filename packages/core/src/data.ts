@@ -955,3 +955,135 @@ export async function suggest (
   })
   if (error) throw error
 }
+
+// ---------------------------------------------- signing in a home screen app ----
+
+/**
+ * Signs in from a link that was pasted rather than followed.
+ *
+ * This exists for one specific trap, and it is a trap that locks people out.
+ *
+ * On an iPhone, a site added to the home screen gets its own storage, separate
+ * from Safari's. Tapping a sign-in link in Mail or Gmail opens Safari, so the
+ * session lands in Safari and the installed app is still signed out. Tapping
+ * the link again does exactly the same thing. There is no number of attempts
+ * that fixes it, which is what makes it so unpleasant: it looks like the app is
+ * broken rather than like the wrong window is being signed in.
+ *
+ * Pasting the link puts the session where the person actually is.
+ *
+ * Both shapes are accepted: the link as it appears in the email, which carries
+ * a token to verify, and the address it lands on afterwards, which already
+ * carries a session in its fragment.
+ */
+export async function signInFromLink (
+  db: SupabaseClient, pasted: string
+): Promise<void> {
+  const text = pasted.trim ()
+  if (!text) throw new Error ('Paste the link from your email.')
+
+  // The address after following the link, which already holds a session.
+  const fragment = text.includes ('#') ? text.slice (text.indexOf ('#') + 1) : ''
+  const frag = new URLSearchParams (fragment)
+  const access_token = frag.get ('access_token')
+  const refresh_token = frag.get ('refresh_token')
+  if (access_token && refresh_token) {
+    const { error } = await db.auth.setSession ({ access_token, refresh_token })
+    if (error) throw error
+    return
+  }
+
+  // The link as it arrives in the email.
+  let token: string | null = null
+  let type = 'magiclink'
+  try {
+    const url = new URL (text)
+    token = url.searchParams.get ('token') ?? url.searchParams.get ('token_hash')
+    type = url.searchParams.get ('type') ?? 'magiclink'
+  } catch {
+    // Not a URL. Somebody may have pasted only the token, which is fine.
+    if (/^[A-Za-z0-9_-]{16,}$/.test (text)) token = text
+  }
+
+  if (!token) {
+    throw new Error ('That does not look like the sign-in link. Copy the whole link from the email.')
+  }
+
+  const { error } = await db.auth.verifyOtp ({
+    token_hash: token,
+    type: type as 'magiclink',
+  })
+  if (error) throw error
+}
+
+/**
+ * A six to eight digit code from the email, if the email carries one.
+ *
+ * Kept separate from the pasted link because it is the nicer path when it is
+ * available, and it becomes available the moment a custom mail provider is
+ * configured. See supabase/templates/magic_link.html.
+ */
+export async function signInWithCode (
+  db: SupabaseClient, email: string, code: string
+): Promise<void> {
+  const { error } = await db.auth.verifyOtp ({
+    email: email.trim ().toLowerCase (),
+    token: code.trim (),
+    type: 'email',
+  })
+  if (error) throw error
+}
+
+// ----------------------------------------------------------- personal code ----
+
+/**
+ * A standing invite that belongs to you rather than to one occasion.
+ *
+ * The ordinary invite is single use, which is right for sending somebody a
+ * link. A code you hold up for people to scan has to survive being scanned
+ * again, so this one is reusable, and claim_invite already gives each claimant
+ * their own conversation rather than dropping everyone into one.
+ *
+ * The plaintext token stays on the device, exactly as it does for a link: the
+ * server only ever holds its digest. That is what makes a leaked database
+ * useless, and it is the reason this cannot simply be looked up again from
+ * another phone. Signing in somewhere new mints a new code; the old one keeps
+ * working until it is reset.
+ */
+export async function ensurePersonalCode (
+  db: SupabaseClient,
+  base: string,
+  remembered: string | null
+): Promise<{ token: string; url: string }> {
+  if (remembered) {
+    // Still good? A revoked code should not keep being shown to people.
+    const { data } = await db.from ('invites')
+      .select ('id, revoked_at').eq ('token_hash', await hashToken (remembered)).maybeSingle ()
+    if (data && !data.revoked_at) {
+      return { token: remembered, url: `${base.replace (/\/$/, '')}/i/${remembered}` }
+    }
+  }
+
+  const made = await createInvite (db, {
+    kind: 'personal',
+    label: 'personal code',
+    reusable: true,
+    base,
+  })
+  return { token: made.token, url: made.url }
+}
+
+/** Retires a personal code, so a printed or screenshotted one stops working. */
+export async function resetPersonalCode (
+  db: SupabaseClient, oldToken: string | null, base: string
+): Promise<{ token: string; url: string }> {
+  if (oldToken) {
+    const { data } = await db.from ('invites')
+      .select ('id').eq ('token_hash', await hashToken (oldToken)).maybeSingle ()
+    if (data) await revokeInvite (db, data.id)
+  }
+  const made = await createInvite (db, {
+    kind: 'personal', label: 'personal code', reusable: true, base,
+  })
+  return { token: made.token, url: made.url }
+}

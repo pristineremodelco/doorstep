@@ -13,6 +13,10 @@
 /manifest.webmanifest
   Cache-Control: no-cache
 
+# The whole point of this file is to be newer than the cache.
+/version.json
+  Cache-Control: no-store
+
 # The camera is the whole app, so the permission is asked for explicitly rather
 # than left to the default. Nothing else is allowed.
 /*

@@ -1883,3 +1883,107 @@ p[data-warn="true"] {
 
 .vf-review { z-index: 2; background: #000; display: grid; place-items: center; }
 .vf-review img, .vf-review video { width: 100%; height: 100%; object-fit: contain; }
+
+/* ---------------------------------------------------------------- pager --- */
+
+/* Two screens side by side, swiped between. Scroll snap rather than a gesture
+   library: it is the browser's own scrolling, so it has the right momentum,
+   the right rubber band at the ends, and it works with a trackpad and a
+   keyboard without any of that being written. */
+.pager {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.pager::-webkit-scrollbar { display: none; }
+
+.page {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pager-dots {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  padding: var(--s-2) 0 var(--s-1);
+}
+
+.pager-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--line);
+  cursor: pointer;
+  transition: background var(--quick), width var(--quick);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pager-dot[data-here="true"] { background: var(--warm); width: 18px; border-radius: 999px; }
+
+/* ---------------------------------------------------------------- code --- */
+
+/* Always a light square. A dark code inverts the contrast a scanner expects,
+   and some readers simply will not see it, so this one keeps its own colours
+   whatever theme the app is wearing. */
+:root { --qr-bg: #ffffff; --qr-fg: #100e0d; }
+
+.mycode {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-4) var(--s-4) calc(var(--s-5) + env(safe-area-inset-bottom));
+}
+
+.mycode-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  align-self: stretch;
+}
+
+.mycode-head p { margin: 0; }
+.mycode-name { font-size: 19px; font-weight: 640; letter-spacing: -0.015em; }
+
+.qr, .qr-placeholder {
+  width: min(74vw, 280px);
+  aspect-ratio: 1;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--qr-bg);
+  padding: var(--s-2);
+}
+
+.qr-placeholder { background: var(--raised-high); }
+.qr svg { width: 100%; height: 100%; display: block; }
+
+.mycode-actions { display: flex; gap: var(--s-2); }
+
+/* The link sat edge to edge under the code. Given a width and a surface it
+   reads as a thing you can copy rather than as overflowing text. */
+.mycode .invite-link {
+  max-width: 100%;
+  align-self: stretch;
+  text-align: center;
+}
+.centered-text { text-align: center; max-width: 34ch; }

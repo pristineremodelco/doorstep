@@ -38,3 +38,13 @@ otp_expiry = 3600
 [auth.mfa.totp]
 enroll_enabled = true
 verify_enabled = true
+
+# A custom sign-in email is written and ready at supabase/templates/magic_link.html,
+# leading with a code rather than a link. It cannot be switched on yet: Supabase
+# refuses template changes on the free plan while using their built-in mail
+# sender. Adding any custom SMTP provider unlocks it, and is worth doing anyway
+# because the built-in sender is rate limited to a handful of emails an hour.
+#
+# [auth.email.template.magic_link]
+# subject = "Your Doorstep code"
+# content_path = "./supabase/templates/magic_link.html"

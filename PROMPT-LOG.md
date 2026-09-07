@@ -235,3 +235,16 @@ commit this
 ### 2026-09-07 10:36
 
 resume and push to github
+
+---
+### 2026-09-07 10:50
+
+make it public, but keep it so the link essentially has to be sent to the person, realistically without marketing nobody will stumble upon it.
+
+i noticed a fix thats needed: on my mothers iphone, i signed her up and verified the link through her gmail. then downlaoded it as an app on her homescreen, to which it has the verify an email screen. there is no sign in option for someone returning, which means the save on this device is fully required. 
+
+eventually this may be fully public in the sense that i will do some advertising, but currently the goal is for friends and family to chat with me. i speak to lots of people on a day to day, so i can be hard to reach at times
+
+i also want a pwa update prompt that snapshots localStorage and IndexedDB to a timestamped back up before applying the update, with automatic restore if the new version fails to load its data.
+
+that way an update isnt lost due to android caching, and data cant be lost due to schema change or overwritten text, etc.
