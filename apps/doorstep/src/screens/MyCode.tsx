@@ -121,8 +121,8 @@ export function MyCode () {
       </div>
 
       <p className="muted fine centered-text">
-        Resetting stops the old one working, for a code that has been screenshotted
-        or printed and should not keep letting people in.
+        Resetting stops the old code working. Use it if your code has been
+        screenshotted or printed.
       </p>
 
       {error && <p className="capture-error">{error}</p>}

@@ -138,7 +138,12 @@ export function Threads ({ onOpen }: Props) {
 
     return (rows ?? [])
       // Someone you blocked leaves the list entirely. That is the point of it.
-      .filter ((r) => !r.other || !blocked.has (r.other.id))
+      //
+      // Keyed on otherId rather than on their profile. Blocking makes the
+      // profile unreadable, so a rule written against r.other stopped matching
+      // at exactly the moment it was needed and left the conversation sitting
+      // in the list relabelled "Someone new".
+      .filter ((r) => !r.otherId || !blocked.has (r.otherId))
       .filter ((r) => showArchived === archived.has (r.thread.id))
       .filter ((r) => !q
         || named (r).toLowerCase ().includes (q)

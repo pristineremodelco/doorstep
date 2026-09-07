@@ -32,6 +32,7 @@ import { SignIn } from './screens/SignIn'
 import { MyCode } from './screens/MyCode'
 import { Threads } from './screens/Threads'
 import { Thread } from './screens/Thread'
+import { QuickRecord } from './screens/QuickRecord'
 import { InviteClaim } from './screens/InviteClaim'
 
 /**
@@ -63,6 +64,15 @@ interface Settings {
   layout: ThreadLayout
   /** Whether the recording is mirrored to match the preview. */
   selfie: Facing
+  /**
+   * Open the app with the camera already running, and choose who the recording
+   * is for afterwards.
+   *
+   * Off by default. Opening a messaging app straight into a live viewfinder is
+   * startling if you did not ask for it, and switching the camera on lights the
+   * phone's privacy indicator whether or not anything is being recorded.
+   */
+  quickRecord: boolean
 }
 
 const DEFAULTS: Settings = {
@@ -73,6 +83,7 @@ const DEFAULTS: Settings = {
   reviewBeforeSend: true,
   layout: 'chat',
   selfie: 'mirror',
+  quickRecord: false,
 }
 
 function loadSettings (): Settings {
@@ -90,6 +101,7 @@ function loadSettings (): Settings {
       reviewBeforeSend: parsed.reviewBeforeSend !== false,
       layout: parsed.layout === 'camera' ? 'camera' : 'chat',
       selfie: parsed.selfie === 'true' ? 'true' : 'mirror',
+      quickRecord: parsed.quickRecord === true,
     }
   } catch {
     // A private window or blocked storage must not stop the app opening.
@@ -109,12 +121,19 @@ type View =
   | { name: 'threads' }
   | { name: 'thread'; id: string; who: string }
   | { name: 'settings' }
+  | { name: 'quick' }
 
 function Shell ({ recovered }: { recovered: boolean }) {
   const { session, profile, loading, refreshProfile } = useSession ()
   const [route, go] = useRoute ()
-  const [view, setView] = useState<View> ({ name: 'threads' })
   const [settings, setSettings] = useState<Settings> (loadSettings)
+  // Read once, at mount. Turning the setting on should not yank the camera up
+  // under the person changing it; it applies the next time the app is opened,
+  // which is the only moment the phrase "opens straight to the camera" means
+  // anything.
+  const [view, setView] = useState<View> (
+    () => (settings.quickRecord ? { name: 'quick' } : { name: 'threads' })
+  )
 
   // Advanced once per arrival at the list, and guarded by a ref rather than
   // left to the effect alone. React runs an effect twice on mount in
@@ -212,12 +231,26 @@ function Shell ({ recovered }: { recovered: boolean }) {
         title={view.name === 'thread' ? view.who : 'Doorstep'}
         greeting={view.name === 'threads' ? greeting : null}
         action={
-          <button
-            className="btn btn-quiet bar-action"
-            onClick={() => setView (view.name === 'settings' ? { name: 'threads' } : { name: 'settings' })}
-          >
-            {view.name === 'settings' ? 'Done' : 'Settings'}
-          </button>
+          <>
+            {/* Only where it leads somewhere new. Once quick record is on, the
+                camera is a place you can be sent back to, so there has to be a
+                way back to it without closing the app and opening it again. */}
+            {settings.quickRecord && view.name === 'threads' && (
+              <button
+                className="btn btn-quiet bar-action"
+                onClick={() => setView ({ name: 'quick' })}
+                aria-label="Camera"
+              >
+                Camera
+              </button>
+            )}
+            <button
+              className="btn btn-quiet bar-action"
+              onClick={() => setView (view.name === 'settings' ? { name: 'threads' } : { name: 'settings' })}
+            >
+              {view.name === 'settings' ? 'Done' : 'Settings'}
+            </button>
+          </>
         }
       />
 
@@ -232,6 +265,16 @@ function Shell ({ recovered }: { recovered: boolean }) {
             </>
           }
           right={<MyCode />}
+        />
+      )}
+
+      {view.name === 'quick' && (
+        <QuickRecord
+          shutter={settings.shutter}
+          quality={settings.quality}
+          selfie={settings.selfie}
+          onMessages={() => setView ({ name: 'threads' })}
+          onOpen={(id, who) => setView ({ name: 'thread', id, who })}
         />
       )}
 
@@ -519,8 +562,32 @@ function SettingsScreen ({
       <SettingsSection
         id="camera"
         title="Camera"
-        summary={settings.shutter === 'hold' ? 'Hold to record' : 'Tap to record'}
+        summary={[
+          settings.quickRecord ? 'Opens to the camera' : null,
+          settings.shutter === 'hold' ? 'Hold to record' : 'Tap to record',
+        ].filter (Boolean).join (' · ')}
       >
+        <section className="field">
+          <h2>When you open the app</h2>
+          <div className="choices">
+            <Choice
+              checked={!settings.quickRecord}
+              onSelect={() => onChange ({ ...settings, quickRecord: false })}
+              title="Show my conversations"
+              note="The ordinary way round. Pick a person, then record."
+            />
+            <Choice
+              checked={settings.quickRecord}
+              onSelect={() => onChange ({ ...settings, quickRecord: true })}
+              title="Open straight to the camera"
+              note="Record first and choose who it goes to afterwards."
+            />
+          </div>
+          <p className="muted note">
+            Takes effect next time you open the app.
+          </p>
+        </section>
+
         <section className="field">
           <h2>Before it sends</h2>
           <div className="choices">
@@ -556,9 +623,8 @@ function SettingsScreen ({
             />
           </div>
           <p className="muted note">
-            Phones mirror the preview and then save the file unmirrored, which is
-            why a recording can look reversed played back. Either choice here
-            makes the two agree.
+            Either choice makes the preview and the recording agree, so nothing
+            looks reversed played back.
           </p>
         </section>
 
@@ -1099,14 +1165,8 @@ function StoragePanel () {
         <Stat label="Conversations" value={String (data.conversations)} />
       </div>
       <p className="muted fine">
-        The free tier covers one gigabyte. Past that, storage is about two cents
-        per gigabyte a month, so this is roughly{' '}
-        {monthly < 0.01 ? 'under a cent' : `$${monthly.toFixed (2)}`} a month at
-        today's size, before anything is watched. Every rewatch is egress on top.
-      </p>
-      <p className="muted fine">
-        Awaiting sweep is media whose copies have all expired. It stops counting
-        once the bucket sweep removes it.
+        Awaiting sweep is media whose copies have all expired, and stops counting
+        once it is cleared.
       </p>
     </div>
   )
@@ -1163,8 +1223,7 @@ function SuggestPanel () {
       }}
     >
       <p className="muted fine">
-        Something broken, missing, or just annoying. This goes to the person who
-        built it, not into a void.
+        Something broken, missing, or just annoying.
       </p>
       {recorded ().length > 0 && (
         <p className="muted fine">
@@ -1266,7 +1325,7 @@ function SecretPanel () {
           ? 'Checking'
           : has
             ? 'You have one set. You can still sign in with an emailed link at any time.'
-            : 'Optional. Without one, an emailed link is the only way in, which is fine and is one fewer thing to forget.'}
+            : 'Optional. Without one, an emailed link is the only way in.'}
       </p>
 
       <input
@@ -1292,7 +1351,7 @@ function SecretPanel () {
       {isPin && secret.length >= MIN_SECRET_LENGTH && (
         <p className="muted fine">
           A {secret.length} digit PIN is one of {(10 ** secret.length).toLocaleString ()}{' '}
-          possibilities. Fine for a phone in your pocket, weaker than words.
+          possibilities. A few words is harder to guess.
         </p>
       )}
 
@@ -1392,9 +1451,7 @@ function SignInIdentity ({ email }: { email: string }) {
       {error && <p className="capture-error">{error}</p>}
 
       <p className="muted fine">
-        A phone number cannot be used yet. Sending a code costs money per message
-        and needs carrier registration, so it is not switched on while this is
-        just for friends.
+        Doorstep uses your email address. There is no phone number to give.
       </p>
     </div>
   )
@@ -1605,9 +1662,7 @@ function AlertPicker ({
              so the two stay apart even if the hues read the same to you.`
           : `It is close to the accent in brightness, ${contrast.toFixed (1)} to 1, so hue is
              doing the work. If these two look alike to you, pick one clearly lighter or
-             darker. On a dark theme both colours have to stay bright enough to see, which
-             limits how far apart they can get, and that is why assist also outlines and
-             marks things rather than trusting colour.`}
+             darker.`}
       </p>
     </div>
   )

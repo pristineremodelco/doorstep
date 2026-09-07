@@ -2018,3 +2018,86 @@ p[data-warn="true"] {
 .warn p { margin: 0; font-size: 14px; line-height: 1.45; }
 .warn-title { font-weight: 640; color: var(--live-solid); }
 .warn .checkline { padding: var(--s-2); border: 0; }
+
+/* -------------------------------------------------------- quick record --- */
+
+/* The camera as the whole screen, because it is what the app opened into.
+   Same skeleton as a conversation's camera, without the history underneath. */
+.quick {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: var(--s-3);
+  gap: var(--s-3);
+}
+
+/* Shorter than a conversation's stage once the recipient list is up, so the
+   list has somewhere to be without the recording being pushed off screen. */
+.quick-stage { flex: 1; }
+.quick:has(.quick-pick) .quick-stage { flex: 0 0 34vh; }
+
+/* Voice has no picture, so the frame says so rather than showing a black
+   rectangle that reads as a camera that failed. */
+.quick-voice {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  text-align: center;
+  color: var(--ink);
+  background: var(--raised);
+}
+
+.quick-voice p { margin: 0; }
+.quick-voice audio { width: 100%; max-width: 280px; }
+
+.quick-pick {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.quick-pick-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.quick-pick-head h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 640;
+  letter-spacing: -0.015em;
+}
+
+.quick-sent {
+  margin: 0;
+  font-size: 14px;
+  color: var(--warm);
+}
+
+/* Scrolls on its own, so a long list never buries the recording above it. */
+.quick-people {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.quick-people .thread-row:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Already sent, so the word carries the confirmation rather than a tick that
+   needs explaining. */
+.quick-people .thread-row:disabled .thread-when { color: var(--warm); }

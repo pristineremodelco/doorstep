@@ -17,11 +17,21 @@ export const MODES: { id: CaptureMode; label: string }[] = [
 ]
 
 export function ModeBar ({
-  mode, onChange,
-}: { mode: CaptureMode; onChange: (m: CaptureMode) => void }) {
+  mode, onChange, hide,
+}: {
+  mode: CaptureMode
+  onChange: (m: CaptureMode) => void
+  /**
+   * Modes this shell has no room for. The quick record screen drops Note,
+   * because a typed message with no conversation chosen yet is a different
+   * screen wearing a camera's clothes.
+   */
+  hide?: CaptureMode[]
+}) {
+  const shown = hide?.length ? MODES.filter ((m) => !hide.includes (m.id)) : MODES
   return (
     <div className="modes" role="tablist" aria-label="What to send">
-      {MODES.map ((m) => (
+      {shown.map ((m) => (
         <button
           key={m.id}
           role="tab"

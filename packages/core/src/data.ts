@@ -97,6 +97,7 @@ export async function listThreads (
     return {
       thread,
       other: theirs ? profileById.get (theirs.user_id) ?? null : null,
+      otherId: theirs?.user_id ?? null,
       latest: (inThread[0] as Message) ?? null,
       unread: inThread.filter (
         (m: Message) => m.sender_id !== me && (!since || m.created_at > since)
@@ -385,6 +386,31 @@ export async function react (
 }
 
 // --------------------------------------------------------------- archive ----
+
+/**
+ * The people a recording can actually be sent to.
+ *
+ * Lives here rather than in the screen that uses it because it is a rule about
+ * the data, not about a layout: archived conversations are put away on purpose
+ * and blocked ones are refused by the database anyway, so offering either as a
+ * destination would be offering a send that cannot happen. Favourites lead,
+ * then whoever you spoke to most recently, which is the order a hand reaches
+ * for when there is something to send right now.
+ */
+export function sendableThreads (
+  threads: ThreadSummary[],
+  archived: Set<string>,
+  blocked: Set<string>
+): ThreadSummary[] {
+  return threads
+    .filter ((r) => !archived.has (r.thread.id) && !(r.otherId && blocked.has (r.otherId)))
+    .sort ((a, b) => {
+      if (a.favorite !== b.favorite) return a.favorite ? -1 : 1
+      const at = a.latest?.created_at ?? a.thread.created_at
+      const bt = b.latest?.created_at ?? b.thread.created_at
+      return bt.localeCompare (at)
+    })
+}
 
 export async function archiveThread (
   db: SupabaseClient, threadId: string, archived: boolean

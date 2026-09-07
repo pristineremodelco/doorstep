@@ -269,3 +269,10 @@ is it possible for the come in button to not appear unless the email account is 
 if i have her scan my qr from my phone, that will solve that currently correct
 
 with the supabase sign up link, its not branded with doorstep and a logo, is that possible to change, since most people will be confused about what supabase is.
+
+---
+### 2026-09-07 12:00
+
+i also would like in the settings the ability to have a quick record screen, meaning you open the app and the camera is already engaged ready to take a picture or video, and then you select who its to. it should be off by default
+
+lets switch this app over to brevo

@@ -101,7 +101,20 @@ export interface Invite {
 /** A thread with the other person and the latest line, ready for a list row. */
 export interface ThreadSummary {
   thread: Thread
+  /**
+   * The other person, when their profile can be read.
+   *
+   * Null once you block them, because blocking makes their profile unreadable,
+   * which is the point of it. Anything that needs to know *who* the other
+   * person is must use otherId instead: a rule written against this field
+   * silently stops applying at the moment it matters most.
+   */
   other: Profile | null
+  /**
+   * The other person's id, taken from thread membership rather than from their
+   * profile, so it survives a block.
+   */
+  otherId: string | null
   latest: Message | null
   unread: number
   /** Your nickname for them, if you set one. */
