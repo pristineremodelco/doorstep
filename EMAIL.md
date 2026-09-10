@@ -31,9 +31,18 @@ than needing a whole domain.
         export DOORSTEP_SMTP_USER="the login from that page"
         export DOORSTEP_SMTP_PASS="the key from that page"
 
-4. Uncomment the two blocks at the bottom of `supabase/config.toml` and push:
+4. Run the switch-on script:
 
-        supabase config push
+        ./tools/smtp-on.sh
+
+   It uncomments the two blocks at the bottom of `supabase/config.toml` and
+   pushes in one step. That matters more than it looks: `supabase config push`
+   resets anything the file does not mention, and doing this by hand has
+   already wiped this project's rate limits and MFA setting once.
+
+5. Send yourself a sign-in link from the app and check it arrives. If nothing
+   turns up, the SMTP login was wrong — a bad one fails at send time rather
+   than quietly, so you will know within a minute. Then commit config.toml.
 
 The alternatives, if Brevo ever stops suiting: Resend gives 3,000 a month but
 wants a domain it can verify, and Postmark has a small free tier with strong

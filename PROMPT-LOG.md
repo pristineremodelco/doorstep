@@ -276,3 +276,13 @@ with the supabase sign up link, its not branded with doorstep and a logo, is tha
 i also would like in the settings the ability to have a quick record screen, meaning you open the app and the camera is already engaged ready to take a picture or video, and then you select who its to. it should be off by default
 
 lets switch this app over to brevo
+
+---
+### 2026-09-08 21:08
+
+will i need it to have its own custom domain url at this point, or can that wait
+
+---
+### 2026-09-09 21:10
+
+i just need to sign in to brevo correct, then what. i will hold ff on the domain currently since it will be friends and family only for a while anyways

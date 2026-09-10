@@ -60,7 +60,10 @@ verify_enabled = true
 #   3. Put both in your shell, so neither is ever written into this repo:
 #        export DOORSTEP_SMTP_USER="the login from that page"
 #        export DOORSTEP_SMTP_PASS="the key from that page"
-#   4. Uncomment the two blocks below and run: supabase config push
+#   4. Run ./tools/smtp-on.sh, which uncomments the two blocks below and pushes.
+#      Doing it in one step matters: a push from a config with pieces missing
+#      resets whatever it cannot see, which has already cost this project its
+#      rate limits and its MFA setting once.
 #
 # [auth.email.smtp]
 # enabled = true
