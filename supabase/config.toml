@@ -54,7 +54,10 @@ verify_enabled = true
 # single address rather than needing a whole domain.
 #
 # To switch it on:
-#   1. Sign up at brevo.com and verify pristineremodelco@gmail.com as a sender.
+#   1. In Brevo, verify the sending domain doorstep.pristineremodelco.com. A
+#      subdomain, not the root: the root's single SPF record belongs to the
+#      business mailbox, and a domain may only have one. Adding a second breaks
+#      both, and the mail that stops arriving is the business's.
 #   2. In Brevo, open SMTP & API and generate an SMTP key. The page shows a
 #      login (an address ending @smtp-brevo.com) and the key itself.
 #   3. Put both in your shell, so neither is ever written into this repo:
@@ -71,7 +74,7 @@ verify_enabled = true
 # port = 587
 # user = "env(DOORSTEP_SMTP_USER)"
 # pass = "env(DOORSTEP_SMTP_PASS)"
-# admin_email = "pristineremodelco@gmail.com"
+# admin_email = "hello@doorstep.pristineremodelco.com"
 # sender_name = "Doorstep"
 
 # The branded email, leading with a code rather than a link. Supabase refuses

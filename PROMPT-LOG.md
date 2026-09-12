@@ -350,3 +350,8 @@ i was looking at domains for doorstep, the lowest cost was hundreds a year not 1
 ### 2026-09-11 23:50
 
 should i use resend or postmark instead of brevo. or would that domain prerequisite be necessary no matter what
+
+---
+### 2026-09-12 00:00
+
+so i could make it doorstep@pristineremodelco.com, at least for now..

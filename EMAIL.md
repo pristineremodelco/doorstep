@@ -19,59 +19,68 @@ provider, free.
 
 ## Setting it up
 
-Brevo, which is what `supabase/config.toml` is already set up for. 300 emails a
-day free, permanently, no card, and it will verify a single email address rather
-than needing a whole domain.
+Send from **doorstep.pristineremodelco.com**, a subdomain of the business
+domain, which Hostinger already runs the DNS for. That settles the domain
+requirement every provider now has, and a subdomain rather than the root for two
+reasons that both matter.
 
-1. Sign up at brevo.com. Verify `pristineremodelco@gmail.com` as a sender:
-   your name in the top right, **Senders, Domains & Dedicated IPs**, **Senders**,
-   **Add a sender**. They email a confirmation link.
-2. Your name in the top right, **Settings**, **SMTP & API**, **SMTP** tab.
-   The **Login** is on that page and looks like `xxxx@smtp-brevo.com`. Click
-   **Generate a new SMTP key** for the password. The full key is shown once, so
-   copy it then.
+Reputation first. If Doorstep's mail ever got marked as spam, sending from the
+root would drag the reputation of the address quotes go out from. A subdomain
+keeps the two apart, which is why this is the normal practice rather than a
+precaution.
 
-   The password is the SMTP key. It is not your Brevo account password and it is
-   not an API key, both of which live nearby and neither of which will work.
-3. Put both in your shell, so neither is ever written into this repo:
+And safety second. The root already carries exactly one SPF record:
 
-        export DOORSTEP_SMTP_USER="the login from that page"
-        export DOORSTEP_SMTP_PASS="the key from that page"
+    v=spf1 include:_spf.mail.hostinger.com ~all
 
-4. Send one test email through Brevo before touching Supabase:
+A domain may only have one. Adding a second does not add to the first, it breaks
+both, and the mail that stops arriving is the business's. Verifying a subdomain
+means never touching that line: the subdomain gets its own records, and the
+business email carries on regardless of anything done here.
+
+1. In Brevo: your name, top right, then **Senders, Domains & Dedicated IPs**,
+   then **Domains**, then add `doorstep.pristineremodelco.com`.
+2. Brevo gives you DKIM and SPF records to publish. In Hostinger's DNS editor
+   for pristineremodelco.com, add them as records on the `doorstep` subdomain,
+   which the editor writes as a `doorstep` host rather than `@`. Leave every
+   existing record alone.
+3. Wait for Brevo to report the domain verified. Usually minutes.
+4. **Settings**, **SMTP & API**, **SMTP** tab. Copy the **Login**, which looks
+   like `xxxx@smtp-brevo.com`, and click **Generate a new SMTP key** for the
+   password. The full key shows once.
+
+   The password is the SMTP key. Not the Brevo account password, not an API key,
+   both of which sit on the same page.
+5. Put both in your shell, so neither reaches this repository:
+
+        export DOORSTEP_SMTP_USER="the login"
+        export DOORSTEP_SMTP_PASS="the key"
+        export DOORSTEP_SMTP_FROM="hello@doorstep.pristineremodelco.com"
+
+6. Prove the relay works before Doorstep is pointed at it:
 
         ./tools/smtp-test.sh pristineremodelco@gmail.com
 
-   This exists because of the catch below: a new Brevo account does not
-   necessarily have transactional sending switched on, and the failure is much
-   easier to read here than after Doorstep has been repointed.
-
-5. Run the switch-on script:
+7. Then switch it on and commit the config:
 
         ./tools/smtp-on.sh
 
-   It uncomments the two blocks at the bottom of `supabase/config.toml` and
-   pushes in one step. That matters more than it looks: `supabase config push`
-   resets anything the file does not mention, and doing this by hand has
-   already wiped this project's rate limits and MFA setting once.
-
-6. Send yourself a sign-in link from the app and check it arrives, then commit
-   config.toml.
+Nothing needs to receive mail at `hello@doorstep.pristineremodelco.com` for this
+to work; a reply to it would simply bounce. Worth pointing at a real mailbox
+later, since somebody will eventually reply to a sign-in email.
 
 ## The catch worth knowing before you start
 
-Brevo enables transactional sending by hand on new accounts. The credentials can
-be perfectly real and the relay still refuses them until somebody there approves
-the account, and reports are that they often want a verified domain before they
-will. That runs against the reason Brevo was picked here, which was that it
-verifies a single address rather than a whole domain.
+Brevo enables transactional sending by hand on new accounts, so credentials can
+be real and the relay still refuse them until somebody there approves it. A
+verified domain is what that approval usually turns on, which is the case as
+soon as step 3 above is done. `./tools/smtp-test.sh` says which side of that
+line you are on in one command.
 
-So the honest position is: verifying one address is enough to *create* the
-credentials, and may not be enough to *use* them. `./tools/smtp-test.sh` answers
-that in one command. If it is refused, the choices are to open a support ticket
-in Brevo (help icon, then Support and Tickets, asking for transactional email to
-be activated — a day or two), or to buy a domain, which settles it here and at
-Resend and Postmark too, all of which review new accounts the same way.
+If it is still refused after the domain verifies, open the help icon in Brevo,
+then Support and Tickets, and ask for transactional email to be activated. A day
+or two. Resend and Postmark review new accounts the same way, so switching
+provider is not a way around it; the domain is.
 
 The alternatives, if Brevo ever stops suiting: Resend gives 3,000 a month but
 wants a domain it can verify, and Postmark has a small free tier with strong
