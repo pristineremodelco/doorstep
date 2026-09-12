@@ -355,3 +355,8 @@ should i use resend or postmark instead of brevo. or would that domain prerequis
 ### 2026-09-12 00:00
 
 so i could make it doorstep@pristineremodelco.com, at least for now..
+
+---
+### 2026-09-12 00:08
+
+how do you make the doorstep.pristine style email or link whatever. is that done through brevo

@@ -40,11 +40,33 @@ business email carries on regardless of anything done here.
 
 1. In Brevo: your name, top right, then **Senders, Domains & Dedicated IPs**,
    then **Domains**, then add `doorstep.pristineremodelco.com`.
-2. Brevo gives you DKIM and SPF records to publish. In Hostinger's DNS editor
-   for pristineremodelco.com, add them as records on the `doorstep` subdomain,
-   which the editor writes as a `doorstep` host rather than `@`. Leave every
-   existing record alone.
-3. Wait for Brevo to report the domain verified. Usually minutes.
+2. Brevo shows you two TXT records: a verification code, and a DKIM key at
+   `mail._domainkey`. It does **not** ask for SPF unless you buy a dedicated IP,
+   so the root's existing SPF line never needs touching.
+
+   Add them in **Hostinger**, not Brevo. hPanel, Domains, pristineremodelco.com,
+   DNS / Nameservers. Nothing is being registered here: a subdomain exists the
+   moment a record points at it, because you already own everything under the
+   domain you bought.
+
+   The Name field is the only place this goes wrong. Hostinger appends
+   `.pristineremodelco.com` to whatever you type, so Brevo's
+   `mail._domainkey.doorstep.pristineremodelco.com` is entered as:
+
+        mail._domainkey.doorstep
+
+   Paste the whole thing and you get a record at
+   `mail._domainkey.doorstep.pristineremodelco.com.pristineremodelco.com`,
+   which resolves nowhere, and Brevo just says the domain is unverified without
+   saying why.
+
+3. Check what actually landed, before going back to Brevo:
+
+        ./tools/dns-check.sh
+
+   It reports the two records, catches the doubled-domain mistake, and confirms
+   the business email on the root is untouched. Then press verify in Brevo.
+   Usually minutes, occasionally an hour while DNS propagates.
 4. **Settings**, **SMTP & API**, **SMTP** tab. Copy the **Login**, which looks
    like `xxxx@smtp-brevo.com`, and click **Generate a new SMTP key** for the
    password. The full key shows once.
