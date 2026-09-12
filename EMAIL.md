@@ -23,15 +23,30 @@ Brevo, which is what `supabase/config.toml` is already set up for. 300 emails a
 day free, permanently, no card, and it will verify a single email address rather
 than needing a whole domain.
 
-1. Sign up at brevo.com and verify `pristineremodelco@gmail.com` as a sender.
-2. Open **SMTP & API** and generate an SMTP key. That page shows a login ending
-   `@smtp-brevo.com` and the key itself.
+1. Sign up at brevo.com. Verify `pristineremodelco@gmail.com` as a sender:
+   your name in the top right, **Senders, Domains & Dedicated IPs**, **Senders**,
+   **Add a sender**. They email a confirmation link.
+2. Your name in the top right, **Settings**, **SMTP & API**, **SMTP** tab.
+   The **Login** is on that page and looks like `xxxx@smtp-brevo.com`. Click
+   **Generate a new SMTP key** for the password. The full key is shown once, so
+   copy it then.
+
+   The password is the SMTP key. It is not your Brevo account password and it is
+   not an API key, both of which live nearby and neither of which will work.
 3. Put both in your shell, so neither is ever written into this repo:
 
         export DOORSTEP_SMTP_USER="the login from that page"
         export DOORSTEP_SMTP_PASS="the key from that page"
 
-4. Run the switch-on script:
+4. Send one test email through Brevo before touching Supabase:
+
+        ./tools/smtp-test.sh pristineremodelco@gmail.com
+
+   This exists because of the catch below: a new Brevo account does not
+   necessarily have transactional sending switched on, and the failure is much
+   easier to read here than after Doorstep has been repointed.
+
+5. Run the switch-on script:
 
         ./tools/smtp-on.sh
 
@@ -40,9 +55,23 @@ than needing a whole domain.
    resets anything the file does not mention, and doing this by hand has
    already wiped this project's rate limits and MFA setting once.
 
-5. Send yourself a sign-in link from the app and check it arrives. If nothing
-   turns up, the SMTP login was wrong — a bad one fails at send time rather
-   than quietly, so you will know within a minute. Then commit config.toml.
+6. Send yourself a sign-in link from the app and check it arrives, then commit
+   config.toml.
+
+## The catch worth knowing before you start
+
+Brevo enables transactional sending by hand on new accounts. The credentials can
+be perfectly real and the relay still refuses them until somebody there approves
+the account, and reports are that they often want a verified domain before they
+will. That runs against the reason Brevo was picked here, which was that it
+verifies a single address rather than a whole domain.
+
+So the honest position is: verifying one address is enough to *create* the
+credentials, and may not be enough to *use* them. `./tools/smtp-test.sh` answers
+that in one command. If it is refused, the choices are to open a support ticket
+in Brevo (help icon, then Support and Tickets, asking for transactional email to
+be activated — a day or two), or to buy a domain, which settles it here and at
+Resend and Postmark too, all of which review new accounts the same way.
 
 The alternatives, if Brevo ever stops suiting: Resend gives 3,000 a month but
 wants a domain it can verify, and Postmark has a small free tier with strong
