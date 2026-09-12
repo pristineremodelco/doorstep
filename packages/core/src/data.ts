@@ -3,7 +3,7 @@ import { MEDIA_BUCKET } from './supabase'
 import { extensionFor, type Capture } from './recorder'
 import { hashToken, makeToken } from './tokens'
 import type {
-  Invite, Message, Profile, RetentionMonths, Thread, ThreadKind, ThreadSummary,
+  Invite, Message, Profile, RetentionDays, Thread, ThreadKind, ThreadSummary,
 } from './types'
 
 /**
@@ -25,12 +25,12 @@ export async function myProfile (db: SupabaseClient): Promise<Profile | null> {
 }
 
 export async function setRetention (
-  db: SupabaseClient, months: RetentionMonths | null
+  db: SupabaseClient, days: RetentionDays | null
 ): Promise<void> {
   const { data: auth } = await db.auth.getUser ()
   if (!auth.user) throw new Error ('not signed in')
   const { error } = await db.from ('profiles')
-    .update ({ retention_months: months, updated_at: new Date ().toISOString () })
+    .update ({ retention_days: days, updated_at: new Date ().toISOString () })
     .eq ('id', auth.user.id)
   if (error) throw error
 }
@@ -950,7 +950,7 @@ export async function exportEverything (db: SupabaseClient): Promise<Blob> {
     account: {
       email: auth.user.email,
       name: profile?.display_name,
-      keeps_messages_for_months: profile?.retention_months,
+      keeps_messages_for_days: profile?.retention_days,
     },
     conversations,
   }

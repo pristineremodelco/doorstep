@@ -23,11 +23,20 @@ create table if not exists public.profiles (
   id            uuid primary key references auth.users (id) on delete cascade,
   display_name  text not null default '',
   avatar_path   text,
-  -- How long this person keeps their own copy of a message, in months. 12 is
-  -- the default, 6 and 3 are the other offered choices, and null means keep
-  -- indefinitely. Only an operator may choose null (see threads.kind).
+  -- How long this person keeps their own copy of a message, in days. A year is
+  -- the default; two days, a week, a fortnight, thirty days and six months are
+  -- the other offered choices, and null means keep indefinitely. Only an
+  -- operator may choose null (see threads.kind).
+  --
+  -- Days rather than months because three months was once the shortest on
+  -- offer, which is a long time to be stuck with something you wanted gone by
+  -- the weekend.
   --
   -- This governs their copy and nobody else's. See message_copies.
+  retention_days integer default 365,
+  -- The months this used to be measured in. Read by nothing; kept only so a
+  -- cached copy of an older build can go on writing it without erroring on a
+  -- phone nobody can reach. Removable once no such build is left.
   retention_months integer default 12,
   -- True while the account is an anonymous session that has never attached an
   -- email. Guests can send and watch inside the one thread they were invited
@@ -35,8 +44,8 @@ create table if not exists public.profiles (
   is_guest      boolean not null default false,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
-  constraint retention_months_offered
-    check (retention_months is null or retention_months in (3, 6, 12))
+  constraint retention_days_offered
+    check (retention_days is null or retention_days in (2, 7, 14, 30, 180, 365))
 );
 
 alter table public.profiles enable row level security;
@@ -283,12 +292,12 @@ create or replace function public.messages_mint_copies ()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare
   thread_kind text;
-  owner_months integer;
+  owner_days integer;
 begin
   select kind into thread_kind from public.threads where id = new.thread_id;
 
   if thread_kind = 'client' then
-    select p.retention_months into owner_months
+    select p.retention_days into owner_days
     from public.thread_members tm
     join public.profiles p on p.id = tm.user_id
     where tm.thread_id = new.thread_id and tm.role = 'owner'
@@ -296,15 +305,15 @@ begin
 
     insert into public.message_copies (message_id, user_id, expires_at)
     select new.id, tm.user_id,
-           case when owner_months is null then null
-                else new.created_at + make_interval (months => owner_months) end
+           case when owner_days is null then null
+                else new.created_at + make_interval (days => owner_days) end
     from public.thread_members tm
     where tm.thread_id = new.thread_id and tm.left_at is null;
   else
     insert into public.message_copies (message_id, user_id, expires_at)
     select new.id, tm.user_id,
-           case when p.retention_months is null then null
-                else new.created_at + make_interval (months => p.retention_months) end
+           case when p.retention_days is null then null
+                else new.created_at + make_interval (days => p.retention_days) end
     from public.thread_members tm
     join public.profiles p on p.id = tm.user_id
     where tm.thread_id = new.thread_id and tm.left_at is null;

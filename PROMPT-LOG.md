@@ -322,3 +322,15 @@ i think saving should apply to both. but only if you tap and hold on the video o
 probably a setting to change whether just tap and hold saves, or gives you a button that reads save so you have to confirm it. i feel that should be the default for most users,  even though i would want to set it to save without the unnecessary confirmation button personally...
 
 bug and static check everything, also verify everything is operating smooth and effeciently
+
+---
+### 2026-09-11 23:24
+
+we should also add in standard default settings for storage window of 2 day, 7 day, 14 day, keep 30, 6 months and a year
+
+what else did i need to do for the brevo link. i made the account then just wasnt sure what i was looking at once i was on their website
+
+---
+### 2026-09-11 23:27
+
+if i were to make this truly focused on getting people i dont know on it, i would want to dial back the default to 14 days, and maybe lock 30 days and up behind presumably the only paywall. that is not a concen currently however

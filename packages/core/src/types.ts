@@ -4,16 +4,29 @@ export type ThreadKind = 'personal' | 'client'
 export type MemberRole = 'owner' | 'member' | 'guest'
 export type MessageKind = 'video' | 'photo' | 'voice' | 'text'
 
-/** The retention choices a person is offered, in months. */
-export const RETENTION_CHOICES = [3, 6, 12] as const
-export type RetentionMonths = (typeof RETENTION_CHOICES)[number]
+/**
+ * How long a copy is kept, in days.
+ *
+ * Days rather than months because three months was the shortest anyone could
+ * pick, which is a long time to be stuck with something you wanted gone by the
+ * weekend. Each side chooses their own and neither can shorten the other.
+ */
+export const RETENTION_CHOICES = [2, 7, 14, 30, 180, 365] as const
+export type RetentionDays = (typeof RETENTION_CHOICES)[number]
+
+/** How a retention choice is written where somebody has to read it. */
+export function retentionLabel (days: RetentionDays): string {
+  if (days === 365) return '1 year'
+  if (days === 180) return '6 months'
+  return `${days} days`
+}
 
 export interface Profile {
   id: string
   display_name: string
   avatar_path: string | null
   /** Null means keep indefinitely, which only an operator may choose. */
-  retention_months: RetentionMonths | null
+  retention_days: RetentionDays | null
   is_guest: boolean
   /** Whether this account can see what the project is costing to run. */
   is_owner: boolean

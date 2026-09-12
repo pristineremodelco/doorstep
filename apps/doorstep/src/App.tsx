@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CaptureScreen, type ShutterMode } from '@doorstep/ui'
 import {
-  AUTO_ARCHIVE_CHOICES, RETENTION_CHOICES, avatarUrl, changeEmail,
+  AUTO_ARCHIVE_CHOICES, RETENTION_CHOICES, avatarUrl, changeEmail, retentionLabel,
   deleteAccount, exportEverything, formatBytes, formatDuration,
   listBlockedPeople, runAutoArchive, setAutoArchive, setDisplayName,
   MIN_SECRET_LENGTH, hasPassword, markPassword, removePassword, setPassword,
   setRetention, signOut as endSession, squareAvatar, storageSummary, suggest,
   touchLastSeen, unblockPerson, uploadAvatar,
-  type AutoArchiveDays, type Capture, type Facing, type RetentionMonths,
+  type AutoArchiveDays, type Capture, type Facing, type RetentionDays,
   type StorageSummary, type VideoQuality,
 } from '@doorstep/core'
 import {
@@ -50,7 +50,7 @@ export type ThreadLayout = 'camera' | 'chat'
 
 interface Settings {
   shutter: ShutterMode
-  retentionMonths: RetentionMonths
+  retentionDays: RetentionDays
   quality: VideoQuality
   appearance: Appearance
   /**
@@ -86,7 +86,7 @@ interface Settings {
 
 const DEFAULTS: Settings = {
   shutter: 'hold',
-  retentionMonths: 12,
+  retentionDays: 365,
   quality: 'high',
   appearance: DEFAULT_APPEARANCE,
   reviewBeforeSend: true,
@@ -96,6 +96,13 @@ const DEFAULTS: Settings = {
   holdToSave: 'confirm',
 }
 
+/** Reads a retention set by a version of the app that counted in months. */
+function fromMonths (months: unknown): RetentionDays {
+  if (months === 3 || months === 6) return 180
+  if (months === 12) return 365
+  return DEFAULTS.retentionDays
+}
+
 function loadSettings (): Settings {
   try {
     const raw = localStorage.getItem (SETTINGS_KEY)
@@ -103,9 +110,11 @@ function loadSettings (): Settings {
     const parsed = JSON.parse (raw) as Partial<Settings>
     return {
       shutter: parsed.shutter === 'tap' ? 'tap' : 'hold',
-      retentionMonths: RETENTION_CHOICES.includes (parsed.retentionMonths as RetentionMonths)
-        ? (parsed.retentionMonths as RetentionMonths)
-        : DEFAULTS.retentionMonths,
+      // Carried over from when this was measured in months, so nobody who set
+      // it before finds themselves quietly moved to the default.
+      retentionDays: RETENTION_CHOICES.includes (parsed.retentionDays as RetentionDays)
+        ? (parsed.retentionDays as RetentionDays)
+        : fromMonths ((parsed as { retentionMonths?: unknown }).retentionMonths),
       quality: parsed.quality === 'standard' ? 'standard' : 'high',
       appearance: { ...DEFAULT_APPEARANCE, ...parsed.appearance },
       reviewBeforeSend: parsed.reviewBeforeSend !== false,
@@ -175,9 +184,9 @@ function Shell ({ recovered }: { recovered: boolean }) {
   // the database actually reads when it mints copies.
   useEffect (() => {
     if (!db || !session || !profile) return
-    if (profile.retention_months === settings.retentionMonths) return
-    void setRetention (db, settings.retentionMonths).then (refreshProfile)
-  }, [session, profile, settings.retentionMonths, refreshProfile])
+    if (profile.retention_days === settings.retentionDays) return
+    void setRetention (db, settings.retentionDays).then (refreshProfile)
+  }, [session, profile, settings.retentionDays, refreshProfile])
 
   useEffect (() => { void registerWorker () }, [])
 
@@ -727,23 +736,27 @@ function SettingsScreen ({
       <SettingsSection
         id="keeping"
         title="Keeping things"
-        summary={`${settings.retentionMonths === 12 ? '1 year' : settings.retentionMonths + ' months'}`}
+        summary={retentionLabel (settings.retentionDays)}
       >
         <section className="field">
           <h2>Keep my copy for</h2>
           <div className="choices choices-row">
-            {RETENTION_CHOICES.map ((months) => (
+            {RETENTION_CHOICES.map ((days) => (
               <Choice
-                key={months}
-                checked={settings.retentionMonths === months}
-                onSelect={() => onChange ({ ...settings, retentionMonths: months })}
-                title={months === 12 ? '1 year' : `${months} months`}
+                key={days}
+                checked={settings.retentionDays === days}
+                onSelect={() => onChange ({ ...settings, retentionDays: days })}
+                title={retentionLabel (days)}
               />
             ))}
           </div>
           <p className="muted note">
             This is your copy only. The other person keeps theirs for as long as
             they have chosen, and neither of you can shorten the other.
+          </p>
+          <p className="muted note">
+            Applies to messages from here on. Anything already in your
+            conversations keeps the date it was given when it arrived.
           </p>
         </section>
 
