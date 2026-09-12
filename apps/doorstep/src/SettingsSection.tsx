@@ -98,3 +98,65 @@ export function SettingsSection ({ id, title, summary, children }: SettingsSecti
     </section>
   )
 }
+
+/**
+ * One setting, with its explanation folded away behind a question mark.
+ *
+ * The explanations were paragraphs sitting under every choice, which meant the
+ * screen read as an essay with controls in it and the things worth saying were
+ * buried among things nobody needed twice. Behind a button they are there for
+ * whoever wants them and out of the way of everyone who does not.
+ *
+ * The mark only appears where there is something to say, so an empty one never
+ * invites a tap that opens nothing.
+ */
+export function Field ({
+  title, help, children,
+}: { title: string; help?: ReactNode; children: ReactNode }) {
+  const [open, setOpen] = useState (false)
+
+  return (
+    <section className="field">
+      <div className="field-head">
+        <h2>{title}</h2>
+        {help && (
+          <button
+            type="button"
+            className="field-help"
+            aria-label={`About ${title}`}
+            aria-expanded={open}
+            onClick={() => setOpen (true)}
+          >
+            ?
+          </button>
+        )}
+      </div>
+
+      {children}
+
+      {open && help && (
+        <div
+          className="sheet-backdrop"
+          onClick={() => setOpen (false)}
+          role="presentation"
+        >
+          <div
+            className="sheet sheet-help"
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
+            onClick={(e) => e.stopPropagation ()}
+          >
+            <p className="sheet-ask-title">{title}</p>
+            <div className="sheet-help-body">{help}</div>
+            <div className="row">
+              <button className="btn btn-primary" onClick={() => setOpen (false)}>
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}

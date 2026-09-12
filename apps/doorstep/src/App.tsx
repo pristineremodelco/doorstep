@@ -15,7 +15,7 @@ import {
   type PushState,
 } from './push'
 import { forget, forgetAll, roster, setRemembering } from './accounts'
-import { SettingsSection } from './SettingsSection'
+import { Field, SettingsSection } from './SettingsSection'
 import { clearRecorded, errorDigest, recorded } from './errors'
 import { applyUpdate, checkForUpdate, dismissUpdate } from './updates'
 import { nextGreeting } from './greeting'
@@ -592,8 +592,10 @@ function SettingsScreen ({
           />
         </div>
 
-        <section className="field">
-          <h2>Holding a photo or video</h2>
+        <Field title="Holding a photo or video" help={<>
+          <p>Either way, a tap opens it and nothing saves on its own.</p>
+          <p>The other person is never told that you kept a copy.</p>
+        </>}>
           <div className="choices">
             <Choice
               checked={settings.holdToSave === 'confirm'}
@@ -608,11 +610,7 @@ function SettingsScreen ({
               note="No second step. A hold puts a copy straight on your phone."
             />
           </div>
-          <p className="muted note">
-            Either way a tap opens, nothing saves on its own, and the other
-            person is never told.
-          </p>
-        </section>
+        </Field>
       </SettingsSection>
 
       <SettingsSection
@@ -623,8 +621,7 @@ function SettingsScreen ({
           settings.shutter === 'hold' ? 'Hold to record' : 'Tap to record',
         ].filter (Boolean).join (' · ')}
       >
-        <section className="field">
-          <h2>When you open the app</h2>
+        <Field title="When you open the app" help={<p>Takes effect next time you open the app.</p>}>
           <div className="choices">
             <Choice
               checked={!settings.quickRecord}
@@ -639,10 +636,7 @@ function SettingsScreen ({
               note="Record first and choose who it goes to afterwards."
             />
           </div>
-          <p className="muted note">
-            Takes effect next time you open the app.
-          </p>
-        </section>
+        </Field>
 
         <section className="field">
           <h2>Before it sends</h2>
@@ -662,8 +656,10 @@ function SettingsScreen ({
           </div>
         </section>
 
-        <section className="field">
-          <h2>Which way round you appear</h2>
+        <Field title="Which way round you appear" help={<p>
+          Either choice makes the preview and the recording agree, so nothing
+          looks reversed played back.
+        </p>}>
           <div className="choices">
             <Choice
               checked={settings.selfie === 'mirror'}
@@ -678,11 +674,7 @@ function SettingsScreen ({
               note="No mirroring at all, so what is on screen while you record is exactly what sends."
             />
           </div>
-          <p className="muted note">
-            Either choice makes the preview and the recording agree, so nothing
-            looks reversed played back.
-          </p>
-        </section>
+        </Field>
 
         <section className="field">
           <h2>Recording</h2>
@@ -702,8 +694,10 @@ function SettingsScreen ({
           </div>
         </section>
 
-        <section className="field">
-          <h2>Video quality</h2>
+        <Field title="Video quality" help={<p>
+          High is roughly two and a half times the storage for the same minute,
+          kept for as long as you keep it.
+        </p>}>
           <div className="choices">
             <Choice
               checked={settings.quality === 'standard'}
@@ -718,11 +712,7 @@ function SettingsScreen ({
               note="1080p. About 37 MB a minute, and clearer on a face."
             />
           </div>
-          <p className="muted note">
-            High is roughly two and a half times the storage for the same minute,
-            kept for as long as you keep it.
-          </p>
-        </section>
+        </Field>
       </SettingsSection>
 
       <SettingsSection id="notifications" title="Notifications" summary="Per device">
@@ -738,8 +728,16 @@ function SettingsScreen ({
         title="Keeping things"
         summary={retentionLabel (settings.retentionDays)}
       >
-        <section className="field">
-          <h2>Keep my copy for</h2>
+        <Field title="Keep my copy for" help={<>
+          <p>
+            This is your copy only. The other person keeps theirs for as long as
+            they have chosen, and neither of you can shorten the other.
+          </p>
+          <p>
+            Applies to messages from here on. Anything already in your
+            conversations keeps the date it was given when it arrived.
+          </p>
+        </>}>
           <div className="choices choices-row">
             {RETENTION_CHOICES.map ((days) => (
               <Choice
@@ -750,18 +748,12 @@ function SettingsScreen ({
               />
             ))}
           </div>
-          <p className="muted note">
-            This is your copy only. The other person keeps theirs for as long as
-            they have chosen, and neither of you can shorten the other.
-          </p>
-          <p className="muted note">
-            Applies to messages from here on. Anything already in your
-            conversations keeps the date it was given when it arrived.
-          </p>
-        </section>
+        </Field>
 
-        <section className="field">
-          <h2>File conversations away after</h2>
+        <Field title="File conversations away after" help={<p>
+          Quiet conversations move to your archive only, and come straight back
+          when a message arrives.
+        </p>}>
           <div className="choices choices-row">
             <Choice
               checked={autoArchive === null}
@@ -777,11 +769,7 @@ function SettingsScreen ({
               />
             ))}
           </div>
-          <p className="muted note">
-            Quiet conversations move to your archive only, and come straight
-            back when a message arrives.
-          </p>
-        </section>
+        </Field>
       </SettingsSection>
 
       <SettingsSection id="blocked" title="Blocked" summary="Who cannot reach you">

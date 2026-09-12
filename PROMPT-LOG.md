@@ -334,3 +334,19 @@ what else did i need to do for the brevo link. i made the account then just wasn
 ### 2026-09-11 23:27
 
 if i were to make this truly focused on getting people i dont know on it, i would want to dial back the default to 14 days, and maybe lock 30 days and up behind presumably the only paywall. that is not a concen currently however
+
+---
+### 2026-09-11 23:46
+
+keep 3 months as an option s well, i didnt mean to remove it when i didnt explicitly specify it in the list
+
+i still cant log in on my mothers phone, since supabase requires the email confirmation, and has a limit of 2 times per month
+
+any explanation of a setting should maybe be made a pop up overlay window upon clicking a ? button at the corner of the settings title (when/if applicable)
+
+i was looking at domains for doorstep, the lowest cost was hundreds a year not 12, because its a high enough demand i guess. since i dont want a .fashion url domain
+
+---
+### 2026-09-11 23:50
+
+should i use resend or postmark instead of brevo. or would that domain prerequisite be necessary no matter what

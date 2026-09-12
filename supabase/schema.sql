@@ -24,9 +24,9 @@ create table if not exists public.profiles (
   display_name  text not null default '',
   avatar_path   text,
   -- How long this person keeps their own copy of a message, in days. A year is
-  -- the default; two days, a week, a fortnight, thirty days and six months are
-  -- the other offered choices, and null means keep indefinitely. Only an
-  -- operator may choose null (see threads.kind).
+  -- the default; two days, a week, a fortnight, thirty days, three months and
+  -- six months are the other offered choices, and null means keep indefinitely.
+  -- Only an operator may choose null (see threads.kind).
   --
   -- Days rather than months because three months was once the shortest on
   -- offer, which is a long time to be stuck with something you wanted gone by
@@ -45,7 +45,7 @@ create table if not exists public.profiles (
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
   constraint retention_days_offered
-    check (retention_days is null or retention_days in (2, 7, 14, 30, 180, 365))
+    check (retention_days is null or retention_days in (2, 7, 14, 30, 90, 180, 365))
 );
 
 alter table public.profiles enable row level security;

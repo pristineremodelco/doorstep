@@ -11,13 +11,14 @@ export type MessageKind = 'video' | 'photo' | 'voice' | 'text'
  * pick, which is a long time to be stuck with something you wanted gone by the
  * weekend. Each side chooses their own and neither can shorten the other.
  */
-export const RETENTION_CHOICES = [2, 7, 14, 30, 180, 365] as const
+export const RETENTION_CHOICES = [2, 7, 14, 30, 90, 180, 365] as const
 export type RetentionDays = (typeof RETENTION_CHOICES)[number]
 
 /** How a retention choice is written where somebody has to read it. */
 export function retentionLabel (days: RetentionDays): string {
   if (days === 365) return '1 year'
   if (days === 180) return '6 months'
+  if (days === 90) return '3 months'
   return `${days} days`
 }
 

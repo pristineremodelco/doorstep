@@ -98,3 +98,16 @@ is actually open.
 
 Until custom SMTP is configured, the app works around this by accepting the link
 pasted in, which does the same job.
+
+## Locked out right now
+
+If the two an hour limit has shut somebody out, they do not have to wait. Ask
+the admin API for a code, which sends no email and so cannot be rate limited:
+
+    ./tools/signin-code.sh jonemontlyn@gmail.com
+
+Read the code out to them. On their phone: type their address, tap **I already
+have a code**, type it in. Good once, for thirty minutes. Treat it as their
+password for that half hour — anyone holding it can sign in as them.
+
+This works whether or not custom SMTP is ever configured.

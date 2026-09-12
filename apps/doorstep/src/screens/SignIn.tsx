@@ -28,6 +28,13 @@ export function SignIn () {
   // account at all.
   const [usingSecret, setUsingSecret] = useState (false)
   const [forgot, setForgot] = useState (false)
+  // Reaching the code box without sending anything.
+  //
+  // The box only ever appeared on the screen you land on after an email goes
+  // out, which is a trap when the reason you need it is that no email can go
+  // out. Supabase's built-in sender allows two an hour, and somebody locked out
+  // by that has no way to the one field that would let them in.
+  const [haveCode, setHaveCode] = useState (false)
   // Grey until the address could plausibly be delivered to, and until a secret
   // has been typed when one is being used.
   const addressLooksRight = looksLikeEmail (email)
@@ -69,21 +76,23 @@ export function SignIn () {
     }
   }
 
-  if (sent) {
+  if (sent || haveCode) {
     return (
       <main className="screen centered">
         <div className="stack">
-          <h2>Check your email</h2>
+          <h2>{sent ? 'Check your email' : 'Sign in with a code'}</h2>
           <p className="muted">
-            A sign-in link is on its way to {email.trim ()}.
-            {inApp
+            {sent
+              ? `A sign-in link is on its way to ${email.trim ()}.`
+              : `Type the code you were given for ${email.trim ()}.`}
+            {sent && (inApp
               ? ' Opening it will launch your browser, not this app, so paste it below instead.'
-              : ' Open it on this device and you are in.'}
+              : ' Open it on this device and you are in.')}
           </p>
 
           {/* The way in for a home screen app, where following the link signs in
               the browser and leaves this window exactly as it was. */}
-          <form
+          {sent && <form
             className="stack"
             onSubmit={async (e) => {
               e.preventDefault ()
@@ -119,7 +128,7 @@ export function SignIn () {
             >
               {busy ? 'Signing in' : 'Sign me in'}
             </button>
-          </form>
+          </form>}
 
           {code !== null && (
             <form
@@ -138,7 +147,9 @@ export function SignIn () {
                 }
               }}
             >
-              <label className="field-label" htmlFor="code">Or the code, if the email has one</label>
+              <label className="field-label" htmlFor="code">
+                {sent ? 'Or the code, if the email has one' : 'Your code'}
+              </label>
               <input
                 id="code"
                 className="input"
@@ -149,19 +160,25 @@ export function SignIn () {
                 onChange={(e) => setCode (e.target.value)}
               />
               <button
-                className="btn btn-quiet"
+                className={sent ? 'btn btn-quiet' : 'btn btn-primary btn-wide'}
                 type="submit"
                 disabled={busy || code.trim ().length < 6}
               >
-                Use the code
+                {busy ? 'Signing in' : 'Use the code'}
               </button>
             </form>
           )}
 
           {error && <p className="capture-error">{error}</p>}
 
-          <button className="btn btn-quiet" onClick={() => { setSent (false); setPasted (''); setError (null) }}>
-            Use a different address
+          <button
+            className="btn btn-quiet"
+            onClick={() => {
+              setSent (false); setHaveCode (false)
+              setPasted (''); setCode (''); setError (null)
+            }}
+          >
+            {sent ? 'Use a different address' : 'Back'}
           </button>
         </div>
       </main>
@@ -252,6 +269,15 @@ export function SignIn () {
           {usingSecret
             ? 'Email me a link instead'
             : 'I have a password or PIN'}
+        </button>
+
+        <button
+          type="button"
+          className="link-btn"
+          disabled={!addressLooksRight}
+          onClick={() => { setHaveCode (true); setError (null) }}
+        >
+          I already have a code
         </button>
 
         {error && <p className="capture-error">{error}</p>}

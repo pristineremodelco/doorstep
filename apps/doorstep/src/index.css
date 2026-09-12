@@ -2157,3 +2157,45 @@ p[data-warn="true"] {
 }
 
 .sheet-ask .row { justify-content: flex-end; }
+
+/* A setting's explanation, folded away behind a question mark beside its title
+   so the screen reads as controls rather than as an essay with controls in it. */
+.field-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.field-head h2 { margin: 0; }
+
+.field-help {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--raised-high);
+  color: var(--ink-quiet);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--quick), color var(--quick);
+}
+
+.field-help:hover, .field-help[aria-expanded="true"] {
+  background: var(--warm);
+  color: var(--on-warm);
+}
+
+.field-help:focus-visible { outline: 2px solid var(--warm); outline-offset: 2px; }
+
+.sheet-help { gap: var(--s-3); }
+.sheet-help-body { display: flex; flex-direction: column; gap: var(--s-2); }
+.sheet-help-body p { margin: 0; color: var(--ink-quiet); line-height: 1.45; }
+.sheet-help .row { justify-content: flex-end; }
