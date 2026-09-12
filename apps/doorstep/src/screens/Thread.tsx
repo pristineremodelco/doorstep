@@ -69,7 +69,7 @@ export function Thread ({
   const [showArchived, setShowArchived] = useState (false)
   const [filter, setFilter] = useState<FilterName> ('none')
   const [showFilters, setShowFilters] = useState (false)
-  const [saved, setSaved] = useState (false)
+  const [savedId, setSavedId] = useState<string | null> (null)
   const [gone, setGone] = useState (false)
   const [closed, setClosed] = useState (false)
   const [queue, setQueue] = useState<Pending[]> ([])
@@ -338,6 +338,25 @@ export function Thread ({
     }
   }, [mode, deliver, review, offer, threadId])
 
+  /**
+   * Keeps a copy on the phone.
+   *
+   * Never automatic. The browser cannot write to the camera roll at all, so
+   * this hands the file to the system share sheet and the person chooses Save
+   * there; on a desktop it falls back to an ordinary download. Nothing is
+   * written back into the conversation either way, the same as a screenshot.
+   */
+  const keep = useCallback (async (m: Message) => {
+    if (!db || !m.media_path) return
+    try {
+      await saveToDevice (db, m)
+      setSavedId (m.id)
+      setTimeout (() => setSavedId ((id) => (id === m.id ? null : id)), 2000)
+    } catch (e) {
+      setError (e instanceof Error ? e.message : 'Could not save that.')
+    }
+  }, [])
+
   const flip = useCallback (async () => {
     try {
       const stream = await recorderRef.current!.flip ()
@@ -498,6 +517,8 @@ export function Thread ({
           archived={archived}
           showArchived={showArchived}
           onOpen={play}
+          onSave={keep}
+          savedId={savedId}
         />
 
         {activeMessage && (
@@ -531,23 +552,6 @@ export function Thread ({
                   onClick={() => setSpeed (SPEEDS[(SPEEDS.indexOf (speed) + 1) % SPEEDS.length])}
                 >
                   {speed}x
-                </button>
-              )}
-              {activeMessage.media_path && (
-                <button
-                  className="chip"
-                  onClick={async () => {
-                    if (!db) return
-                    try {
-                      await saveToDevice (db, activeMessage)
-                      setSaved (true)
-                      setTimeout (() => setSaved (false), 2000)
-                    } catch (e) {
-                      setError (e instanceof Error ? e.message : 'Could not save that.')
-                    }
-                  }}
-                >
-                  {saved ? 'Saved' : 'Save'}
                 </button>
               )}
               <button
@@ -690,20 +694,8 @@ export function Thread ({
               </button>
             )}
             {activeMessage.media_path && (
-              <button
-                className="chip"
-                onClick={async () => {
-                  if (!db) return
-                  try {
-                    await saveToDevice (db, activeMessage)
-                    setSaved (true)
-                    setTimeout (() => setSaved (false), 2000)
-                  } catch (e) {
-                    setError (e instanceof Error ? e.message : 'Could not save that.')
-                  }
-                }}
-              >
-                {saved ? 'Saved' : 'Save'}
+              <button className="chip" onClick={() => void keep (activeMessage)}>
+                {savedId === activeMessage.id ? 'Saved' : 'Save'}
               </button>
             )}
             <button

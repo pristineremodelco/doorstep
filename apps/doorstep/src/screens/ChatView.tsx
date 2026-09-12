@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { formatDuration, type Message, type Reaction } from '@doorstep/core'
+import { useLongPress } from '../longPress'
 
 /**
  * The conversation as a conversation.
@@ -23,10 +24,14 @@ export interface ChatViewProps {
   archived: Set<string>
   showArchived: boolean
   onOpen: (id: string) => void
+  /** Press and hold a photo, video or voice note to keep a copy. */
+  onSave: (m: Message) => void
+  /** The one that just saved, so the confirmation lands on the right bubble. */
+  savedId: string | null
 }
 
 export function ChatView ({
-  messages, me, urls, reactions, archived, showArchived, onOpen,
+  messages, me, urls, reactions, archived, showArchived, onOpen, onSave, savedId,
 }: ChatViewProps) {
   const list = useRef<HTMLDivElement> (null)
   const atBottom = useRef (true)
@@ -77,39 +82,13 @@ export function ChatView ({
           <div key={m.id}>
             {showDay && <p className="chat-day">{dayLabel (m.created_at)}</p>}
             <div className="chat-row" data-mine={mine}>
-              <button
-                className="bubble"
-                data-kind={m.kind}
-                onClick={() => m.kind !== 'text' && onOpen (m.id)}
-                disabled={m.kind === 'text'}
-              >
-                {m.kind === 'text' && <span className="bubble-text">{m.body}</span>}
-
-                {m.kind === 'photo' && (
-                  urls[m.id]
-                    ? <img src={urls[m.id]} alt="" />
-                    : <span className="bubble-loading" />
-                )}
-
-                {m.kind === 'video' && (
-                  <span className="bubble-video">
-                    {urls[`poster:${m.id}`]
-                      ? <img src={urls[`poster:${m.id}`]} alt="" />
-                      : <span className="bubble-loading" />}
-                    <span className="bubble-play" aria-hidden="true">▶</span>
-                    {m.duration_ms ? (
-                      <span className="bubble-time">{formatDuration (m.duration_ms)}</span>
-                    ) : null}
-                  </span>
-                )}
-
-                {m.kind === 'voice' && (
-                  <span className="bubble-voice">
-                    <span className="bubble-play" aria-hidden="true">▶</span>
-                    {m.duration_ms ? formatDuration (m.duration_ms) : 'Voice'}
-                  </span>
-                )}
-              </button>
+              <Bubble
+                m={m}
+                urls={urls}
+                onOpen={onOpen}
+                onSave={onSave}
+                saved={savedId === m.id}
+              />
 
               {mood.length > 0 && (
                 <span className="bubble-reactions">
@@ -123,6 +102,69 @@ export function ChatView ({
         )
       })}
     </div>
+  )
+}
+
+/**
+ * One message.
+ *
+ * A tap opens it. A press and hold saves it to the phone, which is the same
+ * bargain Snapchat and Marco Polo strike: the gesture is deliberate, so nothing
+ * lands in your camera roll by accident, and nothing is written back into the
+ * conversation when it does. Your own messages hold to save too; a recording
+ * never reaches the camera roll on its own, so this is the only way to keep one.
+ */
+function Bubble ({
+  m, urls, onOpen, onSave, saved,
+}: {
+  m: Message
+  urls: Record<string, string>
+  onOpen: (id: string) => void
+  onSave: (m: Message) => void
+  saved: boolean
+}) {
+  const keepable = Boolean (m.media_path)
+  const { holding, bind } = useLongPress (() => onSave (m), keepable)
+
+  return (
+    <button
+      className="bubble"
+      data-kind={m.kind}
+      data-holding={holding}
+      data-saved={saved}
+      onClick={() => m.kind !== 'text' && onOpen (m.id)}
+      disabled={m.kind === 'text'}
+      {...bind}
+    >
+      {m.kind === 'text' && <span className="bubble-text">{m.body}</span>}
+
+      {m.kind === 'photo' && (
+        urls[m.id]
+          ? <img src={urls[m.id]} alt="" draggable={false} />
+          : <span className="bubble-loading" />
+      )}
+
+      {m.kind === 'video' && (
+        <span className="bubble-video">
+          {urls[`poster:${m.id}`]
+            ? <img src={urls[`poster:${m.id}`]} alt="" draggable={false} />
+            : <span className="bubble-loading" />}
+          <span className="bubble-play" aria-hidden="true">▶</span>
+          {m.duration_ms ? (
+            <span className="bubble-time">{formatDuration (m.duration_ms)}</span>
+          ) : null}
+        </span>
+      )}
+
+      {m.kind === 'voice' && (
+        <span className="bubble-voice">
+          <span className="bubble-play" aria-hidden="true">▶</span>
+          {m.duration_ms ? formatDuration (m.duration_ms) : 'Voice'}
+        </span>
+      )}
+
+      {saved && <span className="bubble-saved">Saved</span>}
+    </button>
   )
 }
 

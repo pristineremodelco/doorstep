@@ -286,3 +286,32 @@ will i need it to have its own custom domain url at this point, or can that wait
 ### 2026-09-09 21:10
 
 i just need to sign in to brevo correct, then what. i will hold ff on the domain currently since it will be friends and family only for a while anyways
+
+---
+### 2026-09-09 21:53
+
+ok i signed up and im in the dash of brevo. it needed my address, and email as well as company name. should i have put doorstep as company name, i put pristine remodel co.
+
+can i edit that
+
+---
+### 2026-09-10 22:09
+
+can you tell me how much strage i currently have available on my pc
+
+---
+### 2026-09-10 22:13
+
+im trying to move all the files off my samsung phone, i want to upload at least all the images into cryptee cloud storage.
+
+i dont have enough room to transfer everything. i was going o use smart switch. is there a better way to transfer everything. i dont need my apps, but i belive 90 percent of my phones storage is images and videos
+
+---
+### 2026-09-11 22:52
+
+i want to make sure a sent video isnt automatically saved into the sender/recorders camera roll. it is in standard message app builtin on every device, but it isnt on snapchat or maro polo
+
+---
+### 2026-09-11 22:56
+
+i think saving should apply to both. but only if you tap and hold on the video or image within the text thread, not just clicking on it

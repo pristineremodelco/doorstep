@@ -1150,7 +1150,6 @@ function StoragePanel () {
   if (data === 'error') return <p className="muted fine">Could not read that.</p>
 
   const live = data.live_bytes
-  const monthly = (live / 1024 ** 3) * 0.021
 
   return (
     <div className="theme-row">

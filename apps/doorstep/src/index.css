@@ -1791,6 +1791,49 @@ p[data-warn="true"] {
 
 .bubble:disabled { cursor: default; }
 
+/* Holding a bubble saves what is in it, so the browser's own long press menu
+   has to be out of the way. Without the callout rule iOS puts its Save Image
+   sheet on top at about the same moment, and you get two answers to one press.
+   touch-action is deliberately left alone: locking it would stop the thread
+   scrolling wherever a finger landed on a picture. */
+.bubble {
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  position: relative;
+  transition: transform var(--quick);
+}
+
+/* The picture must not eat the press, or the hold never reaches the button. */
+.bubble img { pointer-events: none; }
+
+/* Something has to happen while a finger is down, or a gesture with a delay in
+   it reads as the app having missed the touch. */
+.bubble[data-holding="true"] { transform: scale(0.965); }
+
+.bubble-saved {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 640;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  animation: fade var(--quick) both;
+}
+
+/* A voice note has no picture behind the word, so it needs its own ground. */
+.bubble[data-kind="voice"] .bubble-saved,
+.bubble[data-kind="text"] .bubble-saved { background: rgba(0, 0, 0, 0.7); }
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble { transition: none; }
+  .bubble[data-holding="true"] { transform: none; opacity: 0.75; }
+}
+
 /* Theirs carries the accent, not yours.
    
    The two sides need to differ by more than position, because on a narrow
