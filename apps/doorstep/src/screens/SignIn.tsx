@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import {
   looksLikeEmail, sendSignInLink, signInFromLink, signInWithCode,
   signInWithPassword,
@@ -37,7 +37,15 @@ export function SignIn () {
   // case where the ordinary instruction is actively wrong.
   const inApp = isIOS () && installed ()
 
-  const submit = useCallback (async (e: React.FormEvent) => {
+  // Not memoised, deliberately. It was, on [email, busy], and the three other
+  // values it reads went stale the moment they changed without the address
+  // changing too. That is the ordinary order: type your address, then say you
+  // have a password, then type it. The handler still held usingSecret false
+  // from before the switch, so Come In quietly sent a link instead of signing
+  // you in, and "keep me signed in" was read from whenever you last touched the
+  // address. A submit handler on a form is called once per press; there was
+  // nothing for the memo to save.
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault ()
     if (!db || busy) return
     const address = email.trim ()
@@ -59,7 +67,7 @@ export function SignIn () {
     } finally {
       setBusy (false)
     }
-  }, [email, busy])
+  }
 
   if (sent) {
     return (

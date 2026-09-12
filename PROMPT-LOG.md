@@ -315,3 +315,10 @@ i want to make sure a sent video isnt automatically saved into the sender/record
 ### 2026-09-11 22:56
 
 i think saving should apply to both. but only if you tap and hold on the video or image within the text thread, not just clicking on it
+
+---
+### 2026-09-11 23:10
+
+probably a setting to change whether just tap and hold saves, or gives you a button that reads save so you have to confirm it. i feel that should be the default for most users,  even though i would want to set it to save without the unnecessary confirmation button personally...
+
+bug and static check everything, also verify everything is operating smooth and effeciently

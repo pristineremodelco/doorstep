@@ -2144,3 +2144,16 @@ p[data-warn="true"] {
 /* Already sent, so the word carries the confirmation rather than a tick that
    needs explaining. */
 .quick-people .thread-row:disabled .thread-when { color: var(--warm); }
+
+/* The question a hold asks, when it is set to ask. Short enough that it needs
+   no heading: one line and two buttons. */
+.sheet-ask { gap: var(--s-4); }
+
+.sheet-ask-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+}
+
+.sheet-ask .row { justify-content: flex-end; }

@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "env": { "browser": true, "es2024": true },
+  "plugins": ["react", "typescript", "unicorn", "oxc"],
+  "categories": { "correctness": "error", "suspicious": "warn", "perf": "warn" },
+  "rules": {
+    "react/react-in-jsx-scope": "off",
+    "unicorn/prefer-add-event-listener": "off",
+    "unicorn/no-array-sort": "off",
+    "no-await-in-loop": "off",
+    "no-console": "off",
+    "react/set-state-in-effect": "warn",
+    "react/refs": "warn",
+    "unicorn/require-post-message-target-origin": "off",
+    "no-unmodified-loop-condition": "off"
+  },
+  "overrides": [
+    { "files": ["tools/**", "supabase/**"], "env": { "node": true, "browser": false } }
+  ]
+}

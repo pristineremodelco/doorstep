@@ -73,6 +73,15 @@ interface Settings {
    * phone's privacy indicator whether or not anything is being recorded.
    */
   quickRecord: boolean
+  /**
+   * What a press and hold on a photo or video does.
+   *
+   * Asking first is the default. Holding is a gesture people discover by
+   * accident as often as on purpose, and the first time it happens it should
+   * explain itself rather than silently put a file on the phone. Anyone who
+   * knows what the hold does can turn the question off.
+   */
+  holdToSave: 'confirm' | 'immediate'
 }
 
 const DEFAULTS: Settings = {
@@ -84,6 +93,7 @@ const DEFAULTS: Settings = {
   layout: 'chat',
   selfie: 'mirror',
   quickRecord: false,
+  holdToSave: 'confirm',
 }
 
 function loadSettings (): Settings {
@@ -102,6 +112,7 @@ function loadSettings (): Settings {
       layout: parsed.layout === 'camera' ? 'camera' : 'chat',
       selfie: parsed.selfie === 'true' ? 'true' : 'mirror',
       quickRecord: parsed.quickRecord === true,
+      holdToSave: parsed.holdToSave === 'immediate' ? 'immediate' : 'confirm',
     }
   } catch {
     // A private window or blocked storage must not stop the app opening.
@@ -287,6 +298,7 @@ function Shell ({ recovered }: { recovered: boolean }) {
           review={settings.reviewBeforeSend}
           layout={settings.layout}
           selfie={settings.selfie}
+          holdToSave={settings.holdToSave}
           onBack={() => setView ({ name: 'threads' })}
         />
       )}
@@ -429,6 +441,16 @@ function Bar ({
 function LocalOnly ({ settings }: { settings: Settings }) {
   const [reel, setReel] = useState<{ id: string; url: string; capture: Capture }[]> ([])
   const [open, setOpen] = useState (false)
+
+  // Each clip in the reel holds a blob URL, and without this they accumulate
+  // for as long as the page is open. Nothing in the shipped app reaches here,
+  // but this is the mode the recorder is tested in, which is exactly where a
+  // slow leak would be mistaken for the recorder itself.
+  const reelRef = useRef (reel)
+  reelRef.current = reel
+  useEffect (() => () => {
+    for (const item of reelRef.current) URL.revokeObjectURL (item.url)
+  }, [])
   return (
     <div className="app">
       <Bar title="Doorstep" action={<span className="tag">local only</span>} />
@@ -541,7 +563,10 @@ function SettingsScreen ({
       <SettingsSection
         id="conversations"
         title="Conversations"
-        summary={settings.layout === 'chat' ? 'Chat' : 'Camera first'}
+        summary={[
+          settings.layout === 'chat' ? 'Chat' : 'Camera first',
+          settings.holdToSave === 'immediate' ? 'Hold saves' : null,
+        ].filter (Boolean).join (' · ')}
       >
         <div className="choices">
           <Choice
@@ -557,6 +582,28 @@ function SettingsScreen ({
             note="A live viewfinder with the conversation as a strip underneath."
           />
         </div>
+
+        <section className="field">
+          <h2>Holding a photo or video</h2>
+          <div className="choices">
+            <Choice
+              checked={settings.holdToSave === 'confirm'}
+              onSelect={() => onChange ({ ...settings, holdToSave: 'confirm' })}
+              title="Ask before saving"
+              note="A hold offers a Save button. Nothing is kept until you tap it."
+            />
+            <Choice
+              checked={settings.holdToSave === 'immediate'}
+              onSelect={() => onChange ({ ...settings, holdToSave: 'immediate' })}
+              title="Save on hold"
+              note="No second step. A hold puts a copy straight on your phone."
+            />
+          </div>
+          <p className="muted note">
+            Either way a tap opens, nothing saves on its own, and the other
+            person is never told.
+          </p>
+        </section>
       </SettingsSection>
 
       <SettingsSection

@@ -138,6 +138,13 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
     }
   }, [mode])
 
+  const offer = useCallback ((c: Capture) => {
+    setCapture (c)
+    setReviewUrl (URL.createObjectURL (c.blob))
+    setSent ([])
+    queueMicrotask (() => reviewRef.current?.play ().catch (() => undefined))
+  }, [])
+
   const stop = useCallback (async (wasTap: boolean) => {
     const rec = recorderRef.current
     if (!rec || rec.currentState !== 'recording') return
@@ -150,7 +157,7 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
     } catch (e) {
       setError (describe (e))
     }
-  }, [])
+  }, [offer])
 
   const photo = useCallback (async () => {
     const rec = recorderRef.current
@@ -160,14 +167,7 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
     } catch (e) {
       setError (describe (e))
     }
-  }, [mode])
-
-  function offer (c: Capture) {
-    setCapture (c)
-    setReviewUrl (URL.createObjectURL (c.blob))
-    setSent ([])
-    queueMicrotask (() => reviewRef.current?.play ().catch (() => undefined))
-  }
+  }, [mode, offer])
 
   const flip = useCallback (async () => {
     try {

@@ -24,14 +24,18 @@ export interface ChatViewProps {
   archived: Set<string>
   showArchived: boolean
   onOpen: (id: string) => void
-  /** Press and hold a photo, video or voice note to keep a copy. */
-  onSave: (m: Message) => void
+  /**
+   * A press and hold landed on this one. What that means, saving outright or
+   * offering a button, is a setting and is decided by the conversation rather
+   * than here.
+   */
+  onHold: (m: Message) => void
   /** The one that just saved, so the confirmation lands on the right bubble. */
   savedId: string | null
 }
 
 export function ChatView ({
-  messages, me, urls, reactions, archived, showArchived, onOpen, onSave, savedId,
+  messages, me, urls, reactions, archived, showArchived, onOpen, onHold, savedId,
 }: ChatViewProps) {
   const list = useRef<HTMLDivElement> (null)
   const atBottom = useRef (true)
@@ -86,7 +90,7 @@ export function ChatView ({
                 m={m}
                 urls={urls}
                 onOpen={onOpen}
-                onSave={onSave}
+                onHold={onHold}
                 saved={savedId === m.id}
               />
 
@@ -108,23 +112,23 @@ export function ChatView ({
 /**
  * One message.
  *
- * A tap opens it. A press and hold saves it to the phone, which is the same
- * bargain Snapchat and Marco Polo strike: the gesture is deliberate, so nothing
- * lands in your camera roll by accident, and nothing is written back into the
- * conversation when it does. Your own messages hold to save too; a recording
+ * A tap opens it. A press and hold reaches for saving it to the phone, which is
+ * the same bargain Snapchat and Marco Polo strike: the gesture is deliberate,
+ * so nothing lands in your camera roll by accident, and nothing is written back
+ * into the conversation when it does. Your own messages hold too; a recording
  * never reaches the camera roll on its own, so this is the only way to keep one.
  */
 function Bubble ({
-  m, urls, onOpen, onSave, saved,
+  m, urls, onOpen, onHold, saved,
 }: {
   m: Message
   urls: Record<string, string>
   onOpen: (id: string) => void
-  onSave: (m: Message) => void
+  onHold: (m: Message) => void
   saved: boolean
 }) {
   const keepable = Boolean (m.media_path)
-  const { holding, bind } = useLongPress (() => onSave (m), keepable)
+  const { holding, bind } = useLongPress (() => onHold (m), keepable)
 
   return (
     <button

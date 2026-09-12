@@ -39,13 +39,15 @@ interface Props {
   review: boolean
   layout: 'camera' | 'chat'
   selfie: Facing
+  /** Whether a hold saves outright or offers a button first. */
+  holdToSave: 'confirm' | 'immediate'
   onBack: () => void
 }
 
 const SPEEDS = [1, 1.5, 2, 3]
 
 export function Thread ({
-  threadId, me, shutter, quality, review, layout, selfie, onBack,
+  threadId, me, shutter, quality, review, layout, selfie, holdToSave, onBack,
 }: Props) {
   const previewRef = useRef<HTMLVideoElement> (null)
   const playerRef = useRef<HTMLVideoElement> (null)
@@ -70,6 +72,7 @@ export function Thread ({
   const [filter, setFilter] = useState<FilterName> ('none')
   const [showFilters, setShowFilters] = useState (false)
   const [savedId, setSavedId] = useState<string | null> (null)
+  const [askSave, setAskSave] = useState<Message | null> (null)
   const [gone, setGone] = useState (false)
   const [closed, setClosed] = useState (false)
   const [queue, setQueue] = useState<Pending[]> ([])
@@ -237,9 +240,17 @@ export function Thread ({
   }, [])
 
   const clearOffer = useCallback (() => {
-    setReviewUrl ((url) => { if (url) URL.revokeObjectURL (url); return null })
+    setReviewUrl (null)
     setPendingSend (null)
   }, [])
+
+  // Freed when it is replaced and when the conversation closes. It used to be
+  // freed only by clearOffer, which meant a recording left in review and then
+  // backed out of held its blob, the whole video, for the life of the page.
+  useEffect (() => {
+    if (!reviewUrl) return
+    return () => URL.revokeObjectURL (reviewUrl)
+  }, [reviewUrl])
 
   const deliver = useCallback (async (capture: Parameters<typeof sendCapture>[2]) => {
     if (!db) return
@@ -356,6 +367,15 @@ export function Thread ({
       setError (e instanceof Error ? e.message : 'Could not save that.')
     }
   }, [])
+
+  /**
+   * What a hold on a bubble does, which is a setting rather than a decision
+   * made here: straight to the phone, or a button that has to be tapped.
+   */
+  const held = useCallback ((m: Message) => {
+    if (holdToSave === 'immediate') void keep (m)
+    else setAskSave (m)
+  }, [holdToSave, keep])
 
   const flip = useCallback (async () => {
     try {
@@ -517,9 +537,40 @@ export function Thread ({
           archived={archived}
           showArchived={showArchived}
           onOpen={play}
-          onSave={keep}
+          onHold={held}
           savedId={savedId}
         />
+
+        {askSave && (
+          <div
+            className="sheet-backdrop"
+            onClick={() => setAskSave (null)}
+            role="presentation"
+          >
+            <div
+              className="sheet sheet-ask"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Save to your phone"
+              onClick={(e) => e.stopPropagation ()}
+            >
+              <p className="sheet-ask-title">
+                Save this {kindWord (askSave)} to your phone?
+              </p>
+              <div className="row">
+                <button className="btn btn-quiet" onClick={() => setAskSave (null)}>
+                  Not now
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => { const m = askSave; setAskSave (null); void keep (m) }}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {activeMessage && (
           <div className="chat-player">
@@ -954,6 +1005,13 @@ function onlyEmoji (body: string): boolean {
   const t = body.trim ()
   if (!t) return false
   return /^(\p{Extended_Pictographic}|\p{Emoji_Component}|\uFE0F|\u200D|\s)+$/u.test (t)
+}
+
+/** The bare noun, for a sentence. labelFor carries a duration with it. */
+function kindWord (m: Message): string {
+  if (m.kind === 'photo') return 'photo'
+  if (m.kind === 'voice') return 'voice message'
+  return 'video'
 }
 
 function labelFor (m: Message): string {
