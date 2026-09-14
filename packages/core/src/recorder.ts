@@ -1,3 +1,5 @@
+import { LookPainter, type FilterName } from './looks'
+
 /**
  * Camera capture.
  *
@@ -109,26 +111,6 @@ export const QUALITY: Record<VideoQuality, { width: number; height: number }> = 
 }
 
 /**
- * Look filters.
- *
- * Applied by drawing each frame through a canvas, which is the only way to bake
- * one into the file rather than only into the preview. That pipeline is engaged
- * only when a filter is actually chosen: with None the stream goes straight to
- * the recorder exactly as before, so the ordinary case keeps the timing that
- * was tuned to get audio and picture in step.
- */
-export type FilterName = 'none' | 'warm' | 'cool' | 'mono' | 'bright' | 'faded'
-
-export const FILTERS: Record<FilterName, { label: string; css: string }> = {
-  none:   { label: 'None',   css: 'none' },
-  warm:   { label: 'Warm',   css: 'saturate(1.25) sepia(0.22) contrast(1.05)' },
-  cool:   { label: 'Cool',   css: 'saturate(1.1) hue-rotate(-12deg) brightness(1.04)' },
-  mono:   { label: 'Mono',   css: 'grayscale(1) contrast(1.12)' },
-  bright: { label: 'Bright', css: 'brightness(1.16) contrast(1.08) saturate(1.1)' },
-  faded:  { label: 'Faded',  css: 'saturate(0.75) contrast(0.92) brightness(1.06)' },
-}
-
-/**
  * Which way round the picture goes.
  *
  * The effect has a name: mirroring, or a horizontal flip. Every phone shows a
@@ -184,7 +166,7 @@ export class VideoRecorder {
   private recorder: MediaRecorder | null = null
   private voice = false
   /** Only built while a filter is in use, and torn down with the recording. */
-  private painter: { canvas: HTMLCanvasElement; stop: () => void } | null = null
+  private painter: { canvas: HTMLCanvasElement; look: LookPainter; stop: () => void } | null = null
   private chunks: Blob[] = []
   private startedAt = 0
   private ticker: number | null = null
@@ -269,7 +251,19 @@ export class VideoRecorder {
     canvas.height = height
     const ctx = canvas.getContext ('2d')
     if (!ctx) throw new Error ('cannot draw the frame')
-    ctx.drawImage (video, 0, 0, width, height)
+    // Through the same look and the same mirror as a video, so a photo and a
+    // recording taken a second apart come out alike. A photo used to ignore
+    // both.
+    const filter = this.opts.filter ?? 'none'
+    const mirror = this.mirrors ()
+    if (filter === 'none' && !mirror) {
+      ctx.drawImage (video, 0, 0, width, height)
+    } else {
+      const painter = new LookPainter (width, height, filter, mirror)
+      painter.draw (video)
+      ctx.drawImage (painter.canvas, 0, 0, width, height)
+      painter.dispose ()
+    }
 
     const blob = await new Promise<Blob | null> ((resolve) =>
       canvas.toBlob ((b) => resolve (b), 'image/jpeg', 0.92)
@@ -528,17 +522,13 @@ export class VideoRecorder {
     this.voice = opts.voice === true
 
     const filter = this.opts.filter ?? 'none'
-    // Only the back camera is ever left alone: nobody expects a mirror when
-    // pointing away from themselves.
-    const mirror =
-      (this.opts.selfie ?? 'mirror') === 'mirror' &&
-      (this.opts.facing ?? 'user') === 'user'
+    const mirror = this.mirrors ()
 
     const source = this.voice
       ? new MediaStream (this.stream.getAudioTracks ())
       : filter === 'none' && !mirror
         ? this.stream
-        : this.filtered (FILTERS[filter].css, mirror)
+        : this.filtered (filter, mirror)
 
     const type = this.voice ? pickAudioMimeType () ?? mimeType : mimeType
 
@@ -644,46 +634,51 @@ export class VideoRecorder {
   }
 
   /**
-   * A stream of the camera redrawn through a filter, plus the original audio.
+   * A stream of the camera redrawn through a look, plus the original audio.
    *
    * The paint loop runs on animation frames, so it pauses with the tab. That is
    * the right behaviour: a backgrounded recording has nothing to draw anyway,
    * and the audio track carries its own timing regardless.
    */
-  private filtered (css: string, mirror = false): MediaStream {
+  private filtered (filter: FilterName, mirror: boolean): MediaStream {
     const video = this.frameSource!
     const track = this.stream!.getVideoTracks ()[0]
     const { width = 1280, height = 720, frameRate = 30 } = track.getSettings ()
 
-    const canvas = document.createElement ('canvas')
-    canvas.width = width
-    canvas.height = height
-    const ctx = canvas.getContext ('2d')!
-
-    // Set once rather than per frame: resetting the transform every frame costs
-    // nothing visible but adds work sixty times a second for no reason.
-    if (mirror) {
-      ctx.translate (width, 0)
-      ctx.scale (-1, 1)
-    }
-
+    const painter = new LookPainter (width, height, filter, mirror)
     let raf = 0
     const paint = () => {
-      ctx.filter = css
-      try {
-        ctx.drawImage (video, 0, 0, width, height)
-      } catch {
-        // A frame that is not ready is skipped rather than ending the loop.
-      }
+      painter.draw (video)
       raf = requestAnimationFrame (paint)
     }
     paint ()
 
-    this.painter = { canvas, stop: () => cancelAnimationFrame (raf) }
+    this.painter = {
+      canvas: painter.canvas,
+      look: painter,
+      stop: () => { cancelAnimationFrame (raf); painter.dispose () },
+    }
 
-    const out = canvas.captureStream (frameRate)
+    const out = painter.canvas.captureStream (frameRate)
     for (const a of this.stream!.getAudioTracks ()) out.addTrack (a)
     return out
+  }
+
+  /** Only the selfie camera is ever mirrored: nobody expects a mirror when pointing away. */
+  private mirrors (): boolean {
+    return (this.opts.selfie ?? 'mirror') === 'mirror' && (this.opts.facing ?? 'user') === 'user'
+  }
+
+  /**
+   * Changes the look without reopening the camera.
+   *
+   * It used to be fixed when the recorder was made, so choosing one rebuilt the
+   * camera, a black frame each time. Mid-recording it changes the frames still
+   * to come.
+   */
+  setFilter (name: FilterName) {
+    this.opts.filter = name
+    this.painter?.look.setLook (name)
   }
 
   private stopPainting () {

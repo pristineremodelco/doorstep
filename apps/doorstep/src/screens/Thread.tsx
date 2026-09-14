@@ -166,13 +166,22 @@ export function Thread ({
 
   // -------------------------------------------------------------- camera ---
 
+  // Handed to the open camera rather than reopening it. The look used to be
+  // fixed when the camera was made, so every chip rebuilt the camera, a black
+  // frame each time, and the preview never showed the look at all.
+  const filterRef = useRef (filter)
+  useEffect (() => {
+    filterRef.current = filter
+    recorderRef.current?.setFilter (filter)
+  }, [filter])
+
   const open = useCallback (async () => {
     setError (null)
     try {
       const rec = new VideoRecorder ({
         maxDurationMs: MAX_DURATION_MS,
         quality,
-        filter,
+        filter: filterRef.current,
         selfie,
         onState: setState,
         onElapsed: setElapsed,
@@ -194,7 +203,7 @@ export function Thread ({
     } catch (e) {
       setError (describe (e))
     }
-  }, [filter, quality, selfie])
+  }, [quality, selfie])
 
   // Opened only when the camera is actually on screen. It used to open the
   // moment a conversation did, which in chat view meant switching the camera on
@@ -214,7 +223,7 @@ export function Thread ({
 
   // Changing quality mid-conversation reopens the camera at the new size,
   // because the constraint is fixed when the stream is granted. A filter needs
-  // no reopen: it is read when a recording starts.
+  // no reopen: it is handed to the open camera, above.
   const appliedQuality = useRef (quality)
   useEffect (() => {
     if (appliedQuality.current === quality) return
@@ -730,6 +739,8 @@ export function Thread ({
           playsInline muted autoPlay
           data-hidden={active !== null}
           data-mirror={selfie === 'mirror' && facingUser}
+          // The same steps the recording draws, so the preview is the file.
+          style={filter === 'none' ? undefined : { filter: FILTERS[filter].css }}
         />
 
         {focus.ring && (
