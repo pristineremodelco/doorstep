@@ -6,6 +6,7 @@ import {
 import { db, redirectTo } from '../db'
 import { forgetAll, markPinForgotten, pinKnown, remembering, roster, setRemembering } from '../accounts'
 import { installed, isIOS } from '../push'
+import { DoorLight } from '@doorstep/ui'
 
 /**
  * One field, one button.
@@ -128,6 +129,7 @@ export function SignIn () {
     return (
       <main className="screen centered">
         <form className="stack" onSubmit={enterPin}>
+          <span className="signin-mark signin-mark-sm"><DoorLight lit size={40} label="" /></span>
           <h2>Enter your PIN</h2>
           <p className="muted">{email.trim ()}</p>
           <input
@@ -177,6 +179,7 @@ export function SignIn () {
     return (
       <main className="screen centered">
         <div className="stack">
+          <span className="signin-mark signin-mark-sm"><DoorLight lit size={40} label="" /></span>
           <h2>{sent ? 'Check your email' : 'Sign in with a code'}</h2>
           <p className="muted">
             {sent
@@ -268,15 +271,17 @@ export function SignIn () {
   }
 
   return (
-    <main className="screen centered">
+    <main className="screen signin">
+      <header className="signin-brand">
+        <span className="signin-mark"><DoorLight lit size={56} label="" /></span>
+        <h1 className="signin-name">Doorstep</h1>
+        <p className="signin-tagline">Short video messages between two people.</p>
+      </header>
+
       <form className="stack" onSubmit={submit}>
-        <h2>Doorstep</h2>
-        <p className="muted">
-          Short video messages between two people. No ads, no feed, nothing
-          behind a paywall.
-        </p>
         <input
-          className="input"
+          className="input input-lg"
+          aria-label="Email address"
           type="email"
           inputMode="email"
           autoComplete="email"
@@ -285,45 +290,50 @@ export function SignIn () {
           spellCheck={false}
           placeholder="you@example.com"
           value={email}
-          onChange={(e) => setEmail (e.target.value)}
+          onChange={(e) => { setEmail (e.target.value); setError (null) }}
           required
         />
-        {known.length > 0 && (
-          <p className="muted fine">
-            {known.length === 1 ? 'Last signed in as' : 'Recently signed in as'}{' '}
-            {/* Two at most. This was every address the browser had ever
-                remembered, which on a device used by more than one person is a
-                list of who has been here, printed on the screen before anyone
-                has signed in. */}
-            {known.slice (0, 2).map ((a) => a.email).join (', ')}
-            {known.length > 2 && ` and ${known.length - 2} more`}
-            {'. '}
+        {/* Two at most. This was every address the browser had ever
+            remembered, which on a device used by more than one person is a
+            list of who has been here, printed on the screen before anyone has
+            signed in. Each one fills the field, rather than being read and
+            retyped. */}
+        {known.length > 0 && !email && (
+          <div className="signin-known">
+            {known.slice (0, 2).map ((a) => (
+              <button
+                key={a.email}
+                type="button"
+                className="signin-known-btn"
+                onClick={() => setEmail (a.email)}
+              >
+                {a.email}
+              </button>
+            ))}
             <button
               type="button"
-              className="link-btn"
+              className="btn btn-quiet btn-compact"
               onClick={() => { forgetAll (); setForgot (true) }}
             >
-              Forget them
+              Forget
             </button>
-          </p>
+          </div>
         )}
         {forgot && <p className="muted fine">Cleared from this device.</p>}
 
         {/* Asked, not assumed. Someone borrowing a phone to send one message
             should not be left signed in on it, and that is exactly the case
-            this switcher exists for. */}
-        <label className="checkline">
+            this switcher exists for. The consequence is spelled out only once
+            it is unticked, which is the only time it matters. */}
+        <label className="signin-stay">
           <input
             type="checkbox"
             checked={stay}
             onChange={(e) => { setStay (e.target.checked); setRemembering (e.target.checked) }}
           />
           <span>
-            <span className="checkline-title">Stay signed in on this device</span>
-            <span className="choice-note">
-              Turn this off if the phone is not yours. You will be signed out
-              when you close the tab.
-            </span>
+            Stay signed in on this device
+            {!stay && <span className="signin-stay-note">Signed out when you close it</span>}
           </span>
         </label>
 
@@ -331,25 +341,24 @@ export function SignIn () {
           {busy ? 'One moment' : 'Come In'}
         </button>
 
+        {/* Always readable. Greyed to the colour of a hairline, it looked like
+            a rule rather than a way in. Without an address it says what it
+            needs instead of doing nothing. */}
         <button
           type="button"
-          className="link-btn"
-          disabled={!addressLooksRight}
-          onClick={() => { setHaveCode (true); setError (null) }}
+          className="btn btn-quiet"
+          onClick={() => {
+            if (!addressLooksRight) { setError ('Enter your email address first.'); return }
+            setHaveCode (true); setError (null)
+          }}
         >
           I already have a code
         </button>
 
         {error && <p className="capture-error">{error}</p>}
-        <p className="muted fine">
-          Signing in and signing up are the same thing here. Enter the address
-          you used before and it brings your conversations back.
-        </p>
-        <p className="muted fine">
-          A PIN is optional. No phone number, ever. People reach you only through
-          a link or a code you gave them.
-        </p>
       </form>
+
+      <p className="signin-foot">New or returning, it is the same step. No phone number, no ads, no feed.</p>
     </main>
   )
 }

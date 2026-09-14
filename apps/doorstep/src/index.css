@@ -612,9 +612,9 @@ body {
   font: inherit;
   text-align: left;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--s-4);
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--raised);
@@ -634,6 +634,27 @@ body {
 }
 
 .choice-title { font-weight: 600; letter-spacing: -0.012em; }
+.choice-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+
+/* An empty ring, filled with a check when chosen. */
+.choice-mark {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--line);
+  color: var(--on-warm);
+  transition: background var(--quick), box-shadow var(--quick);
+}
+.choice-mark .icon { stroke-width: 3; }
+.choice[data-checked="true"] .choice-mark { background: var(--warm); box-shadow: none; }
+
+/* Short side by side options carry the tint and edge alone; a ring in each
+   would crowd them. */
+.choices-row .choice-mark { display: none; }
+.choices-row .choice-text { align-items: center; }
 .choice-note { font-size: 13px; color: var(--ink-quiet); line-height: 1.4; }
 
 .note {
@@ -2041,27 +2062,48 @@ p[data-warn="true"] {
 
 .mycode-head {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--s-3);
-  align-self: stretch;
+  gap: var(--s-1);
+  margin-top: var(--s-2);
 }
 
 .mycode-head p { margin: 0; }
-.mycode-name { font-size: 19px; font-weight: 640; letter-spacing: -0.015em; }
+.mycode-head .avatar { margin-bottom: var(--s-1); }
+.mycode-name { font-size: 21px; font-weight: 680; letter-spacing: -0.02em; }
 
-.qr, .qr-placeholder {
-  width: min(74vw, 280px);
-  aspect-ratio: 1;
-  border-radius: var(--radius);
-  overflow: hidden;
+/* Always light, for the scanner's sake, and given room so it reads as a card
+   held out rather than a square pasted on the page. */
+.mycode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  width: min(100%, 300px);
+  margin-top: var(--s-2);
+  padding: var(--s-4) var(--s-4) var(--s-3);
+  border-radius: var(--radius-lg);
   background: var(--qr-bg);
-  padding: var(--s-2);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
 }
 
-.qr-placeholder { background: var(--raised-high); }
+.qr, .qr-placeholder {
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--qr-bg);
+}
+
+.qr-placeholder { background: #efe9e2; }
 .qr svg { width: 100%; height: 100%; display: block; }
 
-.mycode-actions { display: flex; gap: var(--s-2); }
+.mycode-hint { margin: 0; font-size: 14px; font-weight: 560; color: #5b5149; text-align: center; }
+
+.mycode-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s-2); margin-top: var(--s-2); }
+.mycode-actions .btn { padding: 12px 20px; font-size: 16px; }
+.mycode-reset { font-size: 14px; color: var(--ink-quiet); }
 
 /* The link sat edge to edge under the code. Given a width and a surface it
    reads as a thing you can copy rather than as overflowing text. */
@@ -2076,20 +2118,21 @@ p[data-warn="true"] {
 
 /* Marked by a rule down the side as well as a tint, so it still reads as a
    warning with colour blind assist on or a custom accent chosen. */
-.warn {
+.advice {
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
-  padding: var(--s-3) var(--s-4);
+  padding: var(--s-3) var(--s-4) var(--s-3);
   border: 1px solid var(--line);
-  border-left: 3px solid var(--live-solid);
+  border-left: 3px solid var(--warm);
   border-radius: var(--radius);
-  background: var(--raised-high);
+  background: var(--raised);
 }
 
-.warn p { margin: 0; font-size: 14px; line-height: 1.45; }
-.warn-title { font-weight: 640; color: var(--live-solid); }
-.warn .checkline { padding: var(--s-2); border: 0; }
+.advice p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink-soft); }
+.advice .advice-title { display: flex; align-items: center; gap: var(--s-2); font-size: 15px; font-weight: 640; color: var(--ink); }
+.advice-title .icon { color: var(--warm); flex: 0 0 auto; }
+.advice-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-1); }
 
 /* -------------------------------------------------------- quick record --- */
 
@@ -2944,3 +2987,185 @@ p[data-warn="true"] {
 /* Room at the end of the list, so the last conversation can scroll clear of the
    floating button instead of sitting underneath it. */
 .threads { padding-bottom: 84px; }
+
+/* ------------------------------------------------------------- sign in --- */
+
+/* The first screen anyone sees. The door from the home screen icon leads, so
+   the app opens looking like the thing they tapped; the form sits below it and
+   the one line of small print is pinned to the foot, out of the way. */
+.signin {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-6);
+  padding: max(var(--s-6), env(safe-area-inset-top)) var(--s-5) var(--s-5);
+  overflow-y: auto;
+}
+
+.signin-brand {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  text-align: center;
+}
+
+.signin-mark {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  margin-bottom: var(--s-2);
+  border-radius: 24px;
+  background: var(--raised);
+  box-shadow: inset 0 0 0 1px var(--line-soft);
+  color: var(--warm);
+}
+
+.signin-mark-sm { width: 64px; height: 64px; border-radius: 18px; margin: 0 auto var(--s-1); }
+
+.signin-name {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.signin-tagline { margin: 0; color: var(--ink-soft); font-size: 16px; }
+
+.signin .stack { gap: var(--s-3); }
+
+.input-lg { padding: var(--s-4); font-size: 17px; }
+
+.signin-known { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: center; align-items: center; }
+
+.signin-known-btn {
+  font: inherit;
+  font-size: 14px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--raised);
+  color: var(--ink-soft);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.signin-known-btn:active { background: var(--raised-high); }
+
+.signin-stay {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-1) var(--s-1);
+  text-align: left;
+  font-size: 15px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.signin-stay input {
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--warm);
+  flex: 0 0 auto;
+}
+.signin-stay > span { display: flex; flex-direction: column; }
+.signin-stay-note { font-size: 13px; color: var(--ink-quiet); }
+
+.signin-foot {
+  margin: auto 0 0;
+  max-width: 32ch;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-quiet);
+}
+
+/* ------------------------------------------------------ settings, you --- */
+
+/* A button beside a field is the field's height and shape, so the pair reads
+   as one control rather than a pill floating next to a box. */
+.row-btn { flex: 0 0 auto; align-self: stretch; border-radius: var(--radius); padding-left: var(--s-4); padding-right: var(--s-4); }
+
+.avatar-pick {
+  position: relative;
+  overflow: visible;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 640;
+  font-size: 24px;
+  color: var(--ink-quiet);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.avatar-pick img { border-radius: 50%; }
+.avatar-pick-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--warm);
+  color: var(--on-warm);
+  box-shadow: 0 0 0 3px var(--raised);
+}
+.avatar-pick:active { transform: scale(0.96); }
+
+.identity-line {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--radius);
+  background: var(--raised-high);
+  font-size: 15px;
+}
+.identity-line .icon { color: var(--ink-quiet); flex: 0 0 auto; }
+.identity-email { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ------------------------------------------------------- empty list --- */
+
+.empty-start { justify-items: center; gap: var(--s-3); }
+.empty-start p + p { max-width: 28ch; }
+.empty-mark {
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+  margin-bottom: var(--s-2);
+  border-radius: 50%;
+  background: var(--raised);
+  box-shadow: inset 0 0 0 1px var(--line-soft);
+  color: var(--ink-quiet);
+}
+.empty-action { margin-top: var(--s-2); padding: 12px 20px; font-size: 16px; }
+.empty .empty-title { font-size: 19px; font-weight: 640; letter-spacing: -0.015em; color: var(--ink); }
+
+/* ------------------------------------------------------------ avatars --- */
+
+/* A tint per person from one hue, lightness set by the theme, so every
+   person's colour works on night, lantern and daylight alike. */
+.avatar[data-tint] {
+  background: hsl(var(--hue) 26% 23%);
+  color: hsl(var(--hue) 62% 78%);
+}
+:root[data-theme="daylight"] .avatar[data-tint] {
+  background: hsl(var(--hue) 48% 88%);
+  color: hsl(var(--hue) 42% 30%);
+}
+.avatar[data-letters="2"] { font-size: 16px; letter-spacing: 0.01em; }
+.avatar-lg[data-letters="2"] { font-size: 22px; }
+.choices-row .choice { padding-left: var(--s-2); padding-right: var(--s-2); }
+.choices-row .choice-title { white-space: nowrap; }

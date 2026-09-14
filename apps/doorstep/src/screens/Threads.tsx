@@ -6,6 +6,7 @@ import {
 import { DoorLight, Icon } from '@doorstep/ui'
 import { db } from '../db'
 import { PersonSheet } from './PersonSheet'
+import { Avatar } from '../Avatar'
 
 /**
  * The list of conversations.
@@ -248,12 +249,20 @@ export function Threads ({ onOpen }: Props) {
       ) : visible.length === 0 && showArchived ? (
         <div className="empty"><p className="muted">Nothing archived.</p></div>
       ) : rows.length === 0 ? (
-        <div className="empty">
-          <p>No conversations yet.</p>
+        // Something to look at and one thing to do, where the eye already is.
+        // It was two lines of grey text, with the only way forward a small
+        // button in the far corner.
+        <div className="empty empty-start">
+          <span className="empty-mark"><DoorLight lit={false} size={64} label="" /></span>
+          <p className="empty-title">No conversations yet</p>
           <p className="muted">
-            Send someone a link. When they open it, the two of you are connected
-            and nobody else can find either of you.
+            Send someone a link. Once they open it, you are connected, and
+            nobody else can find either of you.
           </p>
+          <button className="btn btn-primary btn-compact empty-action" onClick={invite} disabled={inviting}>
+            <Icon name="plus" size={18} />
+            {inviting ? 'Making a link' : 'Invite someone'}
+          </button>
         </div>
       ) : (
         <ul className="threads">
@@ -270,11 +279,11 @@ export function Threads ({ onOpen }: Props) {
                 aria-label={`About ${shown}`}
               >
                 <span className="avatar-stack">
-                  <span className="avatar" aria-hidden="true">
-                    {other && faces[other.id]
-                      ? <img src={faces[other.id]} alt="" />
-                      : initial (shown)}
-                  </span>
+                  <Avatar
+                    name={nickname ?? other?.display_name}
+                    seed={other?.id ?? thread.id}
+                    src={other ? faces[other.id] : null}
+                  />
                   {other?.last_seen_at && (
                     <span className="presence" data-lit={isHereNow (other.last_seen_at)}>
                       <DoorLight
@@ -340,10 +349,12 @@ export function Threads ({ onOpen }: Props) {
       {/* Invite as a button that floats in the corner, the place a messaging app
           keeps its one creating action. It was a full width bar, the heaviest
           thing on the screen, weighing more than the conversations themselves. */}
-      <button className="fab" onClick={invite} disabled={inviting}>
+      {/* Not while the empty screen carries its own Invite, so there are never
+          two of the same button. */}
+      {rows?.length !== 0 && <button className="fab" onClick={invite} disabled={inviting}>
         <Icon name="plus" size={20} />
         {inviting ? 'Making a link' : 'Invite'}
-      </button>
+      </button>}
 
       {person && (
         <PersonSheet
@@ -362,11 +373,6 @@ export function Threads ({ onOpen }: Props) {
 const SORT_LABELS: Record<ThreadSort, string> = {
   recent: 'Recent',
   name: 'A to Z',
-}
-
-function initial (name?: string | null): string {
-  const t = (name ?? '').trim ()
-  return t ? t[0]!.toUpperCase () : '?'
 }
 
 function preview (m: ThreadSummary['latest']): string {

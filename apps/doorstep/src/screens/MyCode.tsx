@@ -5,6 +5,8 @@ import {
 } from '@doorstep/core'
 import { db, redirectTo } from '../db'
 import { useSession } from '../session'
+import { Icon } from '@doorstep/ui'
+import { Avatar } from '../Avatar'
 
 /**
  * Your details, and a code for somebody standing next to you.
@@ -28,6 +30,7 @@ export function MyCode () {
   const [busy, setBusy] = useState (false)
   const [copied, setCopied] = useState (false)
   const [error, setError] = useState<string | null> (null)
+  const [confirming, setConfirming] = useState (false)
 
   const remembered = (() => {
     try { return localStorage.getItem (CODE_KEY) } catch { return null }
@@ -48,13 +51,8 @@ export function MyCode () {
     void avatarUrl (db, profile.avatar_path).then (setFace)
   }, [profile?.avatar_path])
 
-  const share = useCallback (async () => {
+  const copy = useCallback (async () => {
     if (!url) return
-    if (navigator.share) {
-      try { await navigator.share ({ title: 'Doorstep', text: 'Add me on Doorstep', url }) }
-      catch { /* dismissing is a choice */ }
-      return
-    }
     try {
       await navigator.clipboard.writeText (url)
       setCopied (true)
@@ -64,7 +62,28 @@ export function MyCode () {
     }
   }, [url])
 
-  const name = profile?.display_name?.trim () || 'You'
+  const share = useCallback (async () => {
+    if (!url) return
+    try { await navigator.share ({ title: 'Doorstep', text: 'Add me on Doorstep', url }) }
+    catch { /* dismissing is a choice */ }
+  }, [url])
+
+  const reset = useCallback (async () => {
+    if (!db) return
+    setConfirming (false)
+    setBusy (true)
+    setError (null)
+    try {
+      const made = await resetPersonalCode (db, remembered, redirectTo)
+      try { localStorage.setItem (CODE_KEY, made.token) } catch { /* not essential */ }
+      setUrl (made.url)
+    } catch (e) {
+      setError (e instanceof Error ? e.message : 'Could not reset it.')
+    } finally {
+      setBusy (false)
+    }
+  }, [remembered])
+
   // Read once rather than in the label: `navigator.share` is always defined as
   // a property in the types, so testing it inline reads as always true.
   const canShare = typeof navigator.share === 'function'
@@ -72,60 +91,58 @@ export function MyCode () {
   return (
     <section className="mycode" aria-label="Your code">
       <div className="mycode-head">
-        <span className="avatar avatar-lg" aria-hidden="true">
-          {face ? <img src={face} alt="" /> : name[0]!.toUpperCase ()}
-        </span>
-        <div>
-          <p className="mycode-name">{name}</p>
-          <p className="muted fine">{session?.user?.email}</p>
-          {profile?.last_seen_at && (
-            <p className="muted fine">{activityBand (profile.last_seen_at)}</p>
-          )}
-        </div>
+        <Avatar large name={profile?.display_name} seed={session?.user?.id} src={face} />
+        <p className="mycode-name">{profile?.display_name?.trim () || 'You'}</p>
+        {profile?.last_seen_at && (
+          <p className="muted fine">{activityBand (profile.last_seen_at)}</p>
+        )}
       </div>
 
-      {url ? <Qr value={url} /> : <div className="qr-placeholder" />}
-
-      <p className="muted fine centered-text">
-        Point a camera at this. If they already have Doorstep it opens straight
-        into a conversation with you. If they do not, it asks them to sign up
-        first and connects you as soon as they are done.
-      </p>
-
-      {url && <p className="invite-link">{url}</p>}
+      {/* The code on a card of its own, with the one instruction it needs
+          under it. The longer explanation of what happens for someone without
+          the app was true and not needed: the page they land on says it. */}
+      <div className="mycode-card">
+        {url ? <Qr value={url} /> : <div className="qr-placeholder" />}
+        <p className="mycode-hint">Scan to start a conversation with me</p>
+      </div>
 
       <div className="mycode-actions">
-        <button className="btn btn-primary" onClick={share} disabled={!url}>
-          {copied ? 'Copied' : canShare ? 'Share' : 'Copy link'}
-        </button>
-        <button
-          className="btn btn-quiet"
-          disabled={busy || !url}
-          onClick={async () => {
-            if (!db) return
-            setBusy (true)
-            setError (null)
-            try {
-              const made = await resetPersonalCode (db, remembered, redirectTo)
-              try { localStorage.setItem (CODE_KEY, made.token) } catch { /* not essential */ }
-              setUrl (made.url)
-            } catch (e) {
-              setError (e instanceof Error ? e.message : 'Could not reset it.')
-            } finally {
-              setBusy (false)
-            }
-          }}
-        >
-          {busy ? 'Making a new one' : 'Reset code'}
+        {canShare && (
+          <button className="btn btn-primary btn-compact" onClick={share} disabled={!url}>
+            <Icon name="share" size={18} />Share
+          </button>
+        )}
+        <button className={`btn ${canShare ? 'btn-secondary' : 'btn-primary'} btn-compact`} onClick={copy} disabled={!url}>
+          <Icon name={copied ? 'check' : 'copy'} size={18} />{copied ? 'Copied' : 'Copy link'}
         </button>
       </div>
 
-      <p className="muted fine centered-text">
-        Resetting stops the old code working. Use it if your code has been
-        screenshotted or printed.
-      </p>
+      {/* Resetting is rare and cannot be taken back, so it is small, and asks.
+          The warning about what it does was on screen all the time; now it is
+          said at the moment it matters. */}
+      <button className="btn btn-quiet btn-compact mycode-reset" disabled={busy || !url} onClick={() => setConfirming (true)}>
+        {busy ? 'Making a new one' : 'Reset code'}
+      </button>
 
       {error && <p className="capture-error">{error}</p>}
+
+      {confirming && (
+        <div className="sheet-backdrop" onClick={() => setConfirming (false)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation ()} role="alertdialog" aria-label="Reset your code">
+            <div className="sheet-names">
+              <p className="sheet-their">Reset your code?</p>
+            </div>
+            <p className="muted">
+              The old code and its link stop working. Do this if your code has
+              been screenshotted, printed or shared further than you meant.
+            </p>
+            <div className="row">
+              <button className="btn btn-quiet" onClick={() => setConfirming (false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={() => void reset ()}>Reset code</button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

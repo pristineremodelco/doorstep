@@ -14,7 +14,7 @@
 export type IconName =
   | 'back' | 'settings' | 'camera' | 'flip' | 'look' | 'trash' | 'send'
   | 'plus' | 'search' | 'close' | 'bell-off' | 'chevron-down' | 'check' | 'chat'
-  | 'chevron-right' | 'pin'
+  | 'chevron-right' | 'pin' | 'user' | 'key' | 'mail' | 'share' | 'copy'
 
 const PATHS: Record<IconName, React.ReactNode> = {
   back: <path d="M15 18l-6-6 6-6" />,
@@ -77,6 +77,36 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+  user: (
+    <>
+      <circle cx="12" cy="8.5" r="3.75" />
+      <path d="M4.75 20a7.25 7.25 0 0 1 14.5 0" />
+    </>
+  ),
+  key: (
+    <>
+      <circle cx="8" cy="15" r="4" />
+      <path d="M10.8 12.2L19 4M15.5 7.5l2.5 2.5M17.5 5.5l2 2" />
+    </>
+  ),
+  share: (
+    <>
+      <path d="M12 14.5V3.5M8 7.5l4-4 4 4" />
+      <path d="M7.5 10.5H6.5a2 2 0 0 0-2 2V18a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5.5a2 2 0 0 0-2-2h-1" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2" />
+      <path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5" />
+    </>
+  ),
+  mail: (
+    <>
+      <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
+      <path d="M4 7l8 6 8-6" />
+    </>
+  ),
   chat: <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.2A.5.5 0 0 1 5 19.8V17h-.5A.5.5 0 0 1 4 16.5z" />,
 }
 

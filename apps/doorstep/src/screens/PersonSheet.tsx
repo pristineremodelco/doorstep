@@ -5,6 +5,7 @@ import {
 } from '@doorstep/core'
 import { DoorLight } from '@doorstep/ui'
 import { db } from '../db'
+import { Avatar } from '../Avatar'
 
 /**
  * Who this is.
@@ -51,9 +52,13 @@ export function PersonSheet ({
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation ()} role="dialog" aria-label={theirName}>
-        <span className="avatar avatar-lg sheet-face" aria-hidden="true">
-          {face ? <img src={face} alt="" /> : theirName[0]!.toUpperCase ()}
-        </span>
+        <Avatar
+          large
+          className="sheet-face"
+          name={row.other?.display_name}
+          seed={row.other?.id ?? row.thread.id}
+          src={face}
+        />
 
         <div className="sheet-names">
           <p className="sheet-their">{theirName}</p>

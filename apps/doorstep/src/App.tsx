@@ -30,6 +30,7 @@ import { useRoute } from './router'
 import { SessionProvider, useSession } from './session'
 import { SignIn } from './screens/SignIn'
 import { MyCode } from './screens/MyCode'
+import { hueFor, initials } from './Avatar'
 import { Threads } from './screens/Threads'
 import { Thread } from './screens/Thread'
 import { QuickRecord } from './screens/QuickRecord'
@@ -675,7 +676,7 @@ function SettingsScreen ({
               placeholder="What people see"
               onChange={(e) => setDraft (e.target.value)}
             />
-            <button className="btn btn-quiet" type="submit" disabled={draft.trim () === name.trim ()}>
+            <button className="btn btn-secondary row-btn" type="submit" disabled={draft.trim () === name.trim ()}>
               Save
             </button>
           </form>
@@ -716,13 +717,13 @@ function SettingsScreen ({
             checked={settings.layout === 'chat'}
             onSelect={() => onChange ({ ...settings, layout: 'chat' })}
             title="Chat"
-            note="Oldest at the top, newest at the bottom, theirs on the left and yours on the right."
+            note="Newest at the bottom, like texting."
           />
           <Choice
             checked={settings.layout === 'camera'}
             onSelect={() => onChange ({ ...settings, layout: 'camera' })}
             title="Camera first"
-            note="A live viewfinder with the conversation as a strip underneath."
+            note="A live camera, the conversation beneath it."
           />
         </div>
 
@@ -735,13 +736,13 @@ function SettingsScreen ({
               checked={settings.holdToSave === 'confirm'}
               onSelect={() => onChange ({ ...settings, holdToSave: 'confirm' })}
               title="Ask before saving"
-              note="A hold offers a Save button. Nothing is kept until you tap it."
+              note="A hold offers Save. Nothing keeps on its own."
             />
             <Choice
               checked={settings.holdToSave === 'immediate'}
               onSelect={() => onChange ({ ...settings, holdToSave: 'immediate' })}
               title="Save on hold"
-              note="No second step. A hold puts a copy straight on your phone."
+              note="A hold saves straight to your phone."
             />
           </div>
         </Field>
@@ -761,13 +762,13 @@ function SettingsScreen ({
               checked={!settings.quickRecord}
               onSelect={() => onChange ({ ...settings, quickRecord: false })}
               title="Show my conversations"
-              note="The ordinary way round. Pick a person, then record."
+              note="Pick a person, then record."
             />
             <Choice
               checked={settings.quickRecord}
               onSelect={() => onChange ({ ...settings, quickRecord: true })}
               title="Open straight to the camera"
-              note="Record first and choose who it goes to afterwards."
+              note="Record first, choose who after."
             />
           </div>
         </Field>
@@ -779,13 +780,13 @@ function SettingsScreen ({
               checked={settings.reviewBeforeSend}
               onSelect={() => onChange ({ ...settings, reviewBeforeSend: true })}
               title="Let me look first"
-              note="Watch it back, then send or throw it away."
+              note="Watch it back, then send or delete."
             />
             <Choice
               checked={!settings.reviewBeforeSend}
               onSelect={() => onChange ({ ...settings, reviewBeforeSend: false })}
               title="Send as soon as I let go"
-              note="Faster, with nothing between the recording and the other person."
+              note="No review. Faster."
             />
           </div>
         </section>
@@ -799,13 +800,13 @@ function SettingsScreen ({
               checked={settings.selfie === 'mirror'}
               onSelect={() => onChange ({ ...settings, selfie: 'mirror' })}
               title="Like a mirror"
-              note="The video keeps the way you looked while recording. Writing held up to the camera comes out backwards."
+              note="Writing held up reads backwards."
             />
             <Choice
               checked={settings.selfie === 'true'}
               onSelect={() => onChange ({ ...settings, selfie: 'true' })}
               title="As others see you"
-              note="No mirroring at all, so what is on screen while you record is exactly what sends."
+              note="What you see is what sends."
             />
           </div>
         </Field>
@@ -817,13 +818,13 @@ function SettingsScreen ({
               checked={settings.shutter === 'hold'}
               onSelect={() => onChange ({ ...settings, shutter: 'hold' })}
               title="Hold to record"
-              note="Tap for a photo. Press and talk for video."
+              note="Tap for a photo, hold for video."
             />
             <Choice
               checked={settings.shutter === 'tap'}
               onSelect={() => onChange ({ ...settings, shutter: 'tap' })}
               title="Tap to start and stop"
-              note="For putting the phone down mid message."
+              note="For setting the phone down."
             />
           </div>
         </section>
@@ -837,13 +838,13 @@ function SettingsScreen ({
               checked={settings.quality === 'standard'}
               onSelect={() => onChange ({ ...settings, quality: 'standard' })}
               title="Standard"
-              note="720p. About 17 MB a minute."
+              note="720p, about 17 MB a minute."
             />
             <Choice
               checked={settings.quality === 'high'}
               onSelect={() => onChange ({ ...settings, quality: 'high' })}
               title="High"
-              note="1080p. About 32 MB a minute, and clearer on a face."
+              note="1080p, about 32 MB a minute."
             />
           </div>
         </Field>
@@ -1472,27 +1473,26 @@ function SecretPanel () {
   return (
     <div className="theme-row">
       {has === false && !muted && !dismissed && (
-        <div className="warn">
-          <p className="warn-title">Your email is your only way in</p>
+        // Advice, not a fault, so it is set in the accent and not in red. Two
+        // plain buttons replace a checkbox and a tiny Dismiss link.
+        <div className="advice">
+          <p className="advice-title"><Icon name="key" size={18} />Your email is your only way in</p>
           <p>
             Without a PIN, signing in always needs a code from your email. Anyone
             who can open your email can sign in as you, with or without a PIN,
             so keep that account secure.
           </p>
-          <label className="checkline">
-            <input
-              type="checkbox"
-              onChange={(e) => {
-                setMuted (e.target.checked)
-                try {
-                  localStorage.setItem ('doorstep.secret.warned', e.target.checked ? 'never' : '')
-                } catch { /* not essential */ }
+          <div className="advice-actions">
+            <button className="btn btn-secondary btn-compact" onClick={() => setDismissed (true)}>Got it</button>
+            <button
+              className="btn btn-quiet btn-compact"
+              onClick={() => {
+                setMuted (true)
+                try { localStorage.setItem ('doorstep.secret.warned', 'never') } catch { /* not essential */ }
               }}
-            />
-            <span><span className="checkline-title">Do not show this again</span></span>
-          </label>
-          <div className="nudge-actions">
-            <button className="link-btn" onClick={() => setDismissed (true)}>Dismiss</button>
+            >
+              Do not show again
+            </button>
           </div>
         </div>
       )}
@@ -1534,7 +1534,7 @@ function SecretPanel () {
 
       <div className="row">
         <button
-          className="btn btn-quiet"
+          className="btn btn-secondary btn-compact"
           disabled={busy || secret.length < MIN_SECRET_LENGTH}
           onClick={() => void save ()}
         >
@@ -1584,7 +1584,10 @@ function SignInIdentity ({ email }: { email: string }) {
 
   return (
     <div className="theme-row">
-      <p className="muted fine">Signed in as {email}</p>
+      <p className="identity-line">
+        <Icon name="mail" size={18} />
+        <span className="identity-email">{email}</span>
+      </p>
 
       {sent ? (
         <p className="muted fine">
@@ -1619,17 +1622,13 @@ function SignInIdentity ({ email }: { email: string }) {
             value={draft}
             onChange={(e) => setDraft (e.target.value)}
           />
-          <button className="btn btn-quiet" type="submit" disabled={busy || !draft.trim ()}>
+          <button className="btn btn-secondary row-btn" type="submit" disabled={busy || !draft.trim ()}>
             {busy ? 'Sending' : 'Change'}
           </button>
         </form>
       )}
 
       {error && <p className="capture-error">{error}</p>}
-
-      <p className="muted fine">
-        Doorstep uses your email address. There is no phone number to give.
-      </p>
     </div>
   )
 }
@@ -1864,10 +1863,24 @@ function AvatarPicker () {
 
   return (
     <div className="row">
-      <span className="avatar avatar-lg" aria-hidden="true">
-        {url ? <img src={url} alt="" /> : (profile?.display_name?.[0] ?? '?').toUpperCase ()}
-      </span>
-      <button className="btn btn-quiet" disabled={busy} onClick={() => file.current?.click ()}>
+      {/* The picture itself is a target too, and with nothing to show it shows
+          a person rather than a question mark, which read as an error. */}
+      <button
+        type="button"
+        className="avatar avatar-lg avatar-pick"
+        data-tint={url ? undefined : 'true'}
+        data-letters={initials (profile?.display_name ?? '').length || undefined}
+        style={url ? undefined : { '--hue': hueFor (profile?.id ?? '') } as React.CSSProperties}
+        aria-label={url ? 'Change your picture' : 'Add a picture'}
+        disabled={busy}
+        onClick={() => file.current?.click ()}
+      >
+        {url
+          ? <img src={url} alt="" />
+          : initials (profile?.display_name ?? '') || <Icon name="user" size={30} />}
+        <span className="avatar-pick-badge" aria-hidden="true"><Icon name="camera" size={14} /></span>
+      </button>
+      <button className="btn btn-secondary btn-compact" disabled={busy} onClick={() => file.current?.click ()}>
         {busy ? 'Saving' : url ? 'Change' : 'Add a picture'}
       </button>
       <input
@@ -2010,8 +2023,15 @@ function Choice ({
 }: { checked: boolean; onSelect: () => void; title: string; note?: string }) {
   return (
     <button className="choice" data-checked={checked} onClick={onSelect} aria-pressed={checked}>
-      <span className="choice-title">{title}</span>
-      {note && <span className="choice-note">{note}</span>}
+      <span className="choice-text">
+        <span className="choice-title">{title}</span>
+        {note && <span className="choice-note">{note}</span>}
+      </span>
+      {/* A filled check says which one is on without leaning on the tint,
+          which is faint on a phone outdoors. */}
+      <span className="choice-mark" aria-hidden="true">
+        {checked && <Icon name="check" size={14} />}
+      </span>
     </button>
   )
 }
