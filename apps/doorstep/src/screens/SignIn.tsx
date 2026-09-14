@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  looksLikeEmail, sendSignInLink, signInFromLink, signInWithCode,
+  looksLikeEmail, sendSignInLink, signInWithCode,
   signInWithPassword,
 } from '@doorstep/core'
 import { db, redirectTo } from '../db'
@@ -14,13 +14,31 @@ import { installed, isIOS } from '../push'
  * the database. The address is an identifier and not a way to be found: nobody
  * can search for you by it, because there is no directory to search.
  */
+/**
+ * What to say when a code is refused.
+ *
+ * The usual reason in the home screen app is not a typo. Tapping the button in
+ * the email spends the same token the code is made from, so the code is dead by
+ * the time it is typed. Saying only "invalid" sends somebody to ask for another
+ * email and do the same thing again; saying what happened, and that Safari is
+ * already showing a working code, ends the loop.
+ */
+function codeFailure (err: unknown, inApp: boolean): string {
+  const raw = err instanceof Error ? err.message : String (err)
+  if (/expired|invalid/i.test (raw)) {
+    return inApp
+      ? 'That code is used up. Tapping the button in the email does that. Type the code Safari showed you instead, or ask for a new email.'
+      : 'That code has expired or was already used. Ask for a new email.'
+  }
+  return 'That code did not work. Check it and try again.'
+}
+
 export function SignIn () {
   const [email, setEmail] = useState ('')
   const [sent, setSent] = useState (false)
   const [busy, setBusy] = useState (false)
   const [error, setError] = useState<string | null> (null)
   const [stay, setStay] = useState (remembering)
-  const [pasted, setPasted] = useState ('')
   const [code, setCode] = useState ('')
   const [secret, setSecret] = useState ('')
   // Offered rather than detected. Asking the server whether an address has a
@@ -77,97 +95,65 @@ export function SignIn () {
   }
 
   if (sent || haveCode) {
+    // In the home screen app the code is the only way in that works, so it
+    // leads, and the email's button is named as the trap it is: it opens
+    // Safari, signs the wrong window in, and spends the code on the way.
+    const codeFirst = inApp || haveCode
     return (
       <main className="screen centered">
         <div className="stack">
           <h2>{sent ? 'Check your email' : 'Sign in with a code'}</h2>
           <p className="muted">
             {sent
-              ? `A sign-in link is on its way to ${email.trim ()}.`
+              ? `We sent a sign-in email to ${email.trim ()}.`
               : `Type the code you were given for ${email.trim ()}.`}
-            {sent && (inApp
-              ? ' Opening it will launch your browser, not this app, so paste it below instead.'
-              : ' Open it on this device and you are in.')}
           </p>
+          {sent && inApp && (
+            <p className="signin-warning">
+              Type the code from the email below. Do not tap the button in the
+              email: on iPhone it opens Safari instead, and uses up the code.
+            </p>
+          )}
+          {sent && !inApp && (
+            <p className="muted">Open the link in the email on this device, or type the code from it below.</p>
+          )}
 
-          {/* The way in for a home screen app, where following the link signs in
-              the browser and leaves this window exactly as it was. */}
-          {sent && <form
+          <form
             className="stack"
             onSubmit={async (e) => {
               e.preventDefault ()
-              if (!db || !pasted.trim () || busy) return
+              if (!db || !code.trim () || busy) return
               setBusy (true)
               setError (null)
               try {
-                await signInFromLink (db, pasted)
+                await signInWithCode (db, email, code)
               } catch (err) {
-                setError (err instanceof Error ? err.message : 'That link did not work.')
+                setError (codeFailure (err, inApp))
               } finally {
                 setBusy (false)
               }
             }}
           >
-            <label className="field-label" htmlFor="pasted">
-              Paste the link from the email
-            </label>
+            <label className="field-label" htmlFor="code">Code from the email</label>
             <input
-              id="pasted"
-              className="input"
-              placeholder="Hold the link in your email, copy, paste here"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              value={pasted}
-              onChange={(e) => setPasted (e.target.value)}
+              id="code"
+              className="input code-input"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus={codeFirst}
+              placeholder="8 digits"
+              maxLength={12}
+              value={code}
+              onChange={(e) => setCode (e.target.value.replace (/\D/g, ''))}
             />
             <button
-              className="btn btn-primary btn-wide"
+              className={codeFirst ? 'btn btn-primary btn-wide' : 'btn btn-quiet'}
               type="submit"
-              disabled={busy || pasted.trim ().length < 8}
+              disabled={busy || code.trim ().length < 6}
             >
-              {busy ? 'Signing in' : 'Sign me in'}
+              {busy ? 'Signing in' : 'Come In'}
             </button>
-          </form>}
-
-          {code !== null && (
-            <form
-              className="stack"
-              onSubmit={async (e) => {
-                e.preventDefault ()
-                if (!db || !code.trim () || busy) return
-                setBusy (true)
-                setError (null)
-                try {
-                  await signInWithCode (db, email, code)
-                } catch (err) {
-                  setError (err instanceof Error ? err.message : 'That code did not work.')
-                } finally {
-                  setBusy (false)
-                }
-              }}
-            >
-              <label className="field-label" htmlFor="code">
-                {sent ? 'Or the code, if the email has one' : 'Your code'}
-              </label>
-              <input
-                id="code"
-                className="input"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                placeholder="Code from the email"
-                value={code}
-                onChange={(e) => setCode (e.target.value)}
-              />
-              <button
-                className={sent ? 'btn btn-quiet' : 'btn btn-primary btn-wide'}
-                type="submit"
-                disabled={busy || code.trim ().length < 6}
-              >
-                {busy ? 'Signing in' : 'Use the code'}
-              </button>
-            </form>
-          )}
+          </form>
 
           {error && <p className="capture-error">{error}</p>}
 
@@ -175,7 +161,7 @@ export function SignIn () {
             className="btn btn-quiet"
             onClick={() => {
               setSent (false); setHaveCode (false)
-              setPasted (''); setCode (''); setError (null)
+              setCode (''); setError (null)
             }}
           >
             {sent ? 'Use a different address' : 'Back'}

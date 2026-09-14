@@ -1052,6 +1052,21 @@ export async function signInFromLink (
  * available, and it becomes available the moment a custom mail provider is
  * configured. See supabase/templates/magic_link.html.
  */
+/**
+ * A fresh sign-in code for this same account, for typing into another window.
+ *
+ * Exists for the iPhone home screen app, which Apple keeps apart from Safari
+ * with no way across. The account is the one already signed in here, taken
+ * from this session's token on the server, and no email is sent.
+ */
+export async function mintAppCode (db: SupabaseClient): Promise<string> {
+  const { data, error } = await db.functions.invoke ('app-code', { method: 'POST' })
+  if (error) throw error
+  const code = (data as { code?: string } | null)?.code
+  if (!code) throw new Error ('could not make a code')
+  return code
+}
+
 export async function signInWithCode (
   db: SupabaseClient, email: string, code: string
 ): Promise<void> {

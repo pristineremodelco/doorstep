@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { installed, isIOS } from './push'
+import { arrivedByLink } from './db'
 
 /**
  * Putting Doorstep on an iPhone's home screen, explained before and walked
@@ -70,7 +71,10 @@ export function InstallNudge () {
   const [hidden, setHidden] = useState (readDismissed)
   const [guiding, setGuiding] = useState (false)
 
-  if (!canOfferInstall () || (hidden && !guiding)) return null
+  // Straight after an email link the sign-in card is showing, and it is the one
+  // that matters: offering to install as well would put a second card, saying
+  // something else, in front of someone who very likely already has.
+  if (!canOfferInstall () || arrivedByLink || (hidden && !guiding)) return null
 
   const dismiss = () => {
     setHidden (true)

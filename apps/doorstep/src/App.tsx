@@ -34,6 +34,7 @@ import { Threads } from './screens/Threads'
 import { Thread } from './screens/Thread'
 import { QuickRecord } from './screens/QuickRecord'
 import { InstallGuide, InstallNudge } from './InstallGuide'
+import { AppCodeCard, AppCodeReveal, canOfferAppCode } from './AppCode'
 import { InviteClaim } from './screens/InviteClaim'
 
 /**
@@ -281,6 +282,7 @@ function Shell ({ recovered }: { recovered: boolean }) {
             <>
               {recovered && <RecoveredNote />}
               <UpdateNudge />
+              <AppCodeCard />
               <InstallNudge />
               <PushNudge />
               <Threads onOpen={(id, who) => setView ({ name: 'thread', id, who })} />
@@ -791,6 +793,16 @@ function SettingsScreen ({
       )}
 
       <SettingsSection id="accounts" title="Accounts on this device" summary={email}>
+        {/* The way into the home screen app at any time, not only straight
+            after an email link. */}
+        {canOfferAppCode () && (
+          <Field
+            title="Sign in on your home screen app"
+            help={<p>The app keeps its own sign-in, separate from Safari. A code from here signs it in without another email.</p>}
+          >
+            <AppCodeReveal />
+          </Field>
+        )}
         <AccountSwitcher current={email} />
         <div className="row">
           <button className="btn btn-quiet" onClick={() => void onSignOut ()}>Sign out</button>

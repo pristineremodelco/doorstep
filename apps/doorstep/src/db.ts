@@ -17,6 +17,19 @@ const key = import.meta.env.VITE_SUPABASE_ANON_KEY
  */
 export const configured = Boolean (url && key)
 
+/**
+ * Whether this page was opened from a sign-in link, read before the client
+ * clears the address.
+ *
+ * On an iPhone that is the moment somebody with Doorstep on their home screen
+ * has just done the natural thing, tapped the button in the email, and signed
+ * Safari in instead of the app. Knowing it lets Safari offer the code the app
+ * needs, at the point it is needed. Taken as the module loads, because the
+ * client strips these parameters from the address as soon as it starts.
+ */
+export const arrivedByLink = typeof window !== 'undefined'
+  && /access_token=|type=magiclink|error_code=otp|[?&]code=/.test (window.location.hash + window.location.search)
+
 export const db = configured
   ? makeClient (url!, key!, { storage: sessionStore })
   : null

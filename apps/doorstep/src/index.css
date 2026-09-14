@@ -2625,3 +2625,53 @@ p[data-warn="true"] {
 }
 .scene-app-real img { border-radius: 10px; display: block; }
 .scene-app-real.target { box-shadow: 0 0 0 2px var(--warm); }
+
+/* ------------------------------------------ signing the home screen app in --- */
+
+/* Not an error, so not red: an instruction that matters more than the text
+   around it, set apart so it is read rather than skimmed. */
+.signin-warning {
+  margin: 0;
+  padding: var(--s-3);
+  border-radius: var(--radius);
+  background: var(--raised);
+  border-left: 3px solid var(--warm);
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+/* Eight digits typed on a phone keypad: big, spaced, and centred so a missed
+   digit is obvious at a glance. */
+.code-input {
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: 0.3em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.code-input::placeholder { letter-spacing: normal; font-size: 16px; font-weight: 400; }
+
+.app-code { display: flex; flex-direction: column; gap: var(--s-3); }
+.app-code > .btn { align-self: flex-start; }
+
+.app-code-digits {
+  margin: 0;
+  padding: var(--s-3);
+  border-radius: var(--radius);
+  background: var(--raised-high);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-align: center;
+  color: var(--ink);
+  user-select: all;
+  -webkit-user-select: all;
+}
+
+.app-code-steps { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; font-size: 15px; line-height: 1.4; }
+.app-code-steps li::marker { color: var(--warm); font-weight: 700; }
+.app-code-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
+
+.app-code-card .nudge-title { gap: var(--s-2); color: var(--ink); }
