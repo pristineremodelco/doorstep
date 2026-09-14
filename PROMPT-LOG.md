@@ -360,3 +360,35 @@ so i could make it doorstep@pristineremodelco.com, at least for now..
 ### 2026-09-12 00:08
 
 how do you make the doorstep.pristine style email or link whatever. is that done through brevo
+
+---
+### 2026-09-12 00:29
+
+please simplify that response into a clear step by step for making the subdomain, i have my site pristineremodelco.com on hostinger hpanel, and an account on brevo already. how do i start the switch from supabase, i dont need to know about possible issues that dont even pertain to my scenario. typically im in favor of them , im just too tired currently
+
+---
+### 2026-09-12 00:47
+
+part of step 2, it asks branded subdomain.. should i put support there: is it asking what comes before the @
+
+---
+### 2026-09-12 11:30
+
+which kind should i use, an a aaa or alyternate linking style for the subdomain. i feel your skipping like half of all the steps..
+
+---
+### 2026-09-12 11:31
+
+after clicking manage dns records in hostinger you need to select type
+
+---
+### 2026-09-13 20:42
+
+okay, i have brevo open currently asking me to select 1 or 2, which are ns records or manual
+
+and in hostinger im at my domain manage dns. what do i need to do next in hostinger before continuing in brevo
+
+---
+### 2026-09-13 20:57
+
+brevo claims the type toi be ns. thats not an option on hostinger

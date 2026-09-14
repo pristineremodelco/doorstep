@@ -34,9 +34,8 @@ if [ -n "$ns" ]; then
   echo "     With this in place Brevo writes everything below itself, once you"
   echo "     press verify. The two checks after this can say no until then."
 else
-  no "no NS records on $SUB yet"
-  echo "     In Hostinger add two records, Type NS, Name doorstep, one for each"
-  echo "     nameserver Brevo shows you."
+  echo "  -- not delegated. Fine: Hostinger has no NS record type, so the manual"
+  echo "     setup is the one in use and the checks below are the ones that matter."
 fi
 
 echo

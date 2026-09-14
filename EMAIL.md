@@ -39,7 +39,9 @@ means never touching that line: the subdomain gets its own records, and the
 business email carries on regardless of anything done here.
 
 1. In Brevo: your name, top right, then **Senders, Domains & Dedicated IPs**,
-   then **Domains**, then add `doorstep.pristineremodelco.com`.
+   then **Domains**, then add `doorstep.pristineremodelco.com`. When it offers
+   NS records or manual setup, choose **manual**. Hostinger's DNS editor has no
+   NS record type, so the delegated option cannot be completed there.
 2. Brevo shows you two TXT records: a verification code, and a DKIM key at
    `mail._domainkey`. It does **not** ask for SPF unless you buy a dedicated IP,
    so the root's existing SPF line never needs touching.
