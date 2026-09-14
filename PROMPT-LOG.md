@@ -392,3 +392,8 @@ and in hostinger im at my domain manage dns. what do i need to do next in hostin
 ### 2026-09-13 20:57
 
 brevo claims the type toi be ns. thats not an option on hostinger
+
+---
+### 2026-09-13 20:59
+
+in manual it still shows the type as ns. and it failed to do the automatic setup available within the manual selectio of step 2, which makes me feel like brevo wont be a feasible option

@@ -19,100 +19,50 @@ provider, free.
 
 ## Setting it up
 
-Send from **doorstep.pristineremodelco.com**, a subdomain of the business
-domain, which Hostinger already runs the DNS for. That settles the domain
-requirement every provider now has, and a subdomain rather than the root for two
-reasons that both matter.
+Resend, sending from **doorstep.pristineremodelco.com**. Brevo was tried first and
+could not be finished: for a subdomain it wants NS records, and Hostinger's DNS
+editor has no NS type. Resend needs only TXT and MX, both of which Hostinger has.
+Free for 3,000 emails a month.
 
-Reputation first. If Doorstep's mail ever got marked as spam, sending from the
-root would drag the reputation of the address quotes go out from. A subdomain
-keeps the two apart, which is why this is the normal practice rather than a
-precaution.
+A subdomain rather than the root keeps Doorstep's mail reputation apart from the
+business address, and means the root's own SPF and MX records are never touched.
 
-And safety second. The root already carries exactly one SPF record:
+**In Resend**
 
-    v=spf1 include:_spf.mail.hostinger.com ~all
+1. Sign up at resend.com.
+2. **Domains**, **Add Domain**, enter `doorstep.pristineremodelco.com`.
+3. It lists three records. Keep that tab open.
 
-A domain may only have one. Adding a second does not add to the first, it breaks
-both, and the mail that stops arriving is the business's. Verifying a subdomain
-means never touching that line: the subdomain gets its own records, and the
-business email carries on regardless of anything done here.
+**In Hostinger** — hPanel, Domains, pristineremodelco.com, DNS / Nameservers,
+Manage DNS records. For each of Resend's records:
 
-1. In Brevo: your name, top right, then **Senders, Domains & Dedicated IPs**,
-   then **Domains**, then add `doorstep.pristineremodelco.com`. When it offers
-   NS records or manual setup, choose **manual**. Hostinger's DNS editor has no
-   NS record type, so the delegated option cannot be completed there.
-2. Brevo shows you two TXT records: a verification code, and a DKIM key at
-   `mail._domainkey`. It does **not** ask for SPF unless you buy a dedicated IP,
-   so the root's existing SPF line never needs touching.
+4. **Type**: what Resend shows.
+5. **Name**: Resend's host with `.pristineremodelco.com` taken off the end.
+6. **Value**: paste exactly. For the MX, **Priority** 10.
+7. **Add Record**.
 
-   Add them in **Hostinger**, not Brevo. hPanel, Domains, pristineremodelco.com,
-   DNS / Nameservers. Nothing is being registered here: a subdomain exists the
-   moment a record points at it, because you already own everything under the
-   domain you bought.
+They come out as:
 
-   The Name field is the only place this goes wrong. Hostinger appends
-   `.pristineremodelco.com` to whatever you type, so Brevo's
-   `mail._domainkey.doorstep.pristineremodelco.com` is entered as:
+| Type | Name | Value |
+|---|---|---|
+| TXT | `resend._domainkey.doorstep` | the long key Resend shows |
+| TXT | `send.doorstep` | `v=spf1 include:amazonses.com ~all` |
+| MX  | `send.doorstep` | Resend's mail server, priority 10 |
 
-        mail._domainkey.doorstep
+**Check, then verify**
 
-   Paste the whole thing and you get a record at
-   `mail._domainkey.doorstep.pristineremodelco.com.pristineremodelco.com`,
-   which resolves nowhere, and Brevo just says the domain is unverified without
-   saying why.
+    ./tools/dns-check.sh
 
-3. Check what actually landed, before going back to Brevo:
+8. When the first three say yes, press **Verify** in Resend.
 
-        ./tools/dns-check.sh
+**Switch Doorstep over**
 
-   It reports the two records, catches the doubled-domain mistake, and confirms
-   the business email on the root is untouched. Then press verify in Brevo.
-   Usually minutes, occasionally an hour while DNS propagates.
-4. **Settings**, **SMTP & API**, **SMTP** tab. Copy the **Login**, which looks
-   like `xxxx@smtp-brevo.com`, and click **Generate a new SMTP key** for the
-   password. The full key shows once.
+9. Resend, **API Keys**, **Create API Key**. Copy it; it starts `re_`.
 
-   The password is the SMTP key. Not the Brevo account password, not an API key,
-   both of which sit on the same page.
-5. Put both in your shell, so neither reaches this repository:
-
-        export DOORSTEP_SMTP_USER="the login"
-        export DOORSTEP_SMTP_PASS="the key"
-        export DOORSTEP_SMTP_FROM="hello@doorstep.pristineremodelco.com"
-
-6. Prove the relay works before Doorstep is pointed at it:
-
+        export DOORSTEP_SMTP_PASS="re_..."
         ./tools/smtp-test.sh pristineremodelco@gmail.com
-
-7. Then switch it on and commit the config:
-
         ./tools/smtp-on.sh
-
-Nothing needs to receive mail at `hello@doorstep.pristineremodelco.com` for this
-to work; a reply to it would simply bounce. Worth pointing at a real mailbox
-later, since somebody will eventually reply to a sign-in email.
-
-## The catch worth knowing before you start
-
-Brevo enables transactional sending by hand on new accounts, so credentials can
-be real and the relay still refuse them until somebody there approves it. A
-verified domain is what that approval usually turns on, which is the case as
-soon as step 3 above is done. `./tools/smtp-test.sh` says which side of that
-line you are on in one command.
-
-If it is still refused after the domain verifies, open the help icon in Brevo,
-then Support and Tickets, and ask for transactional email to be activated. A day
-or two. Resend and Postmark review new accounts the same way, so switching
-provider is not a way around it; the domain is.
-
-The alternatives, if Brevo ever stops suiting: Resend gives 3,000 a month but
-wants a domain it can verify, and Postmark has a small free tier with strong
-deliverability. The template works with any of them.
-
-Nothing in the app changes. The next sign-in email is branded, and the ceiling
-goes from two an hour to whatever the provider allows. Supabase applies its own
-limit of 30 an hour once custom SMTP is on, adjustable in the dashboard.
+        git add supabase/config.toml && git commit -m "Send sign-in email through Resend" && git push
 
 ## What it will look like
 

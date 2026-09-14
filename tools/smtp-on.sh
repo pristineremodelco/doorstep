@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 #
-# Switches Doorstep's sign-in email over to Brevo.
+# Switches Doorstep's sign-in email over to Resend.
 #
 # Two things change at once, because they have the same cause. Supabase's
 # built-in sender allows two auth emails an hour, and it refuses template
 # changes while it is in use. A custom sender lifts the limit and unlocks the
 # branded email in one step.
 #
-# Run it once, after generating an SMTP key in Brevo:
+# Run it once, after creating an API key in Resend:
 #
-#   export DOORSTEP_SMTP_USER="the login from Brevo's SMTP & API page"
-#   export DOORSTEP_SMTP_PASS="the key from that page"
+#   export DOORSTEP_SMTP_PASS="re_..."
 #   ./tools/smtp-on.sh
 #
-# The two values stay in your shell. Only the reference to them is written to
+# The key stays in your shell. Only the reference to it is written to
 # config.toml, so nothing secret reaches the repository.
 
 set -euo pipefail
@@ -21,17 +20,12 @@ cd "$(dirname "$0")/.."
 
 PROJECT_REF=reqvbjoxlwncuzbjmwud
 
-missing=()
-[ -n "${DOORSTEP_SMTP_USER:-}" ] || missing+=(DOORSTEP_SMTP_USER)
-[ -n "${DOORSTEP_SMTP_PASS:-}" ] || missing+=(DOORSTEP_SMTP_PASS)
-if [ ${#missing[@]} -gt 0 ]; then
-  echo "Not set: ${missing[*]}"
+if [ -z "${DOORSTEP_SMTP_PASS:-}" ]; then
+  echo "Not set: DOORSTEP_SMTP_PASS"
   echo
-  echo "In Brevo, open SMTP & API and generate an SMTP key. That page shows a"
-  echo "login and the key itself. Then:"
+  echo "In Resend, open API Keys and create one. Then:"
   echo
-  echo "  export DOORSTEP_SMTP_USER=\"the login\""
-  echo "  export DOORSTEP_SMTP_PASS=\"the key\""
+  echo "  export DOORSTEP_SMTP_PASS=\"re_...\""
   echo "  ./tools/smtp-on.sh"
   exit 1
 fi
@@ -45,11 +39,11 @@ t = p.read_text()
 blocks = [
     ('# [auth.email.smtp]\n'
      '# enabled = true\n'
-     '# host = "smtp-relay.brevo.com"\n'
-     '# port = 587\n'
-     '# user = "env(DOORSTEP_SMTP_USER)"\n'
+     '# host = "smtp.resend.com"\n'
+     '# port = 465\n'
+     '# user = "resend"\n'
      '# pass = "env(DOORSTEP_SMTP_PASS)"\n'
-     '# admin_email = "pristineremodelco@gmail.com"\n'
+     '# admin_email = "hello@doorstep.pristineremodelco.com"\n'
      '# sender_name = "Doorstep"\n'),
     ('# [auth.email.template.magic_link]\n'
      '# subject = "Your Doorstep code"\n'

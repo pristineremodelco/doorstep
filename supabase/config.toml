@@ -46,33 +46,28 @@ verify_enabled = true
 
 # Mail.
 #
-# Supabase's built-in sender allows two auth emails an hour and is documented as
-# not for production, and it refuses template changes on the free plan, which is
-# why the sign-in email arrives unbranded. A custom SMTP provider fixes both.
+# Supabase's built-in sender allows two auth emails an hour and refuses template
+# changes on the free plan, which is why the sign-in email arrives unbranded. A
+# custom SMTP provider fixes both.
 #
-# Brevo is the one set up here: 300 emails a day free, and it will verify a
-# single address rather than needing a whole domain.
+# Resend is the one set up here, sending from doorstep.pristineremodelco.com.
+# Brevo was tried first and could not be finished: for a subdomain it asks for
+# NS records, and Hostinger's DNS editor has no NS record type. Resend needs
+# only MX and TXT records, both of which Hostinger has, and publishes a guide
+# for Hostinger specifically.
 #
-# To switch it on:
-#   1. In Brevo, verify the sending domain doorstep.pristineremodelco.com. A
-#      subdomain, not the root: the root's single SPF record belongs to the
-#      business mailbox, and a domain may only have one. Adding a second breaks
-#      both, and the mail that stops arriving is the business's.
-#   2. In Brevo, open SMTP & API and generate an SMTP key. The page shows a
-#      login (an address ending @smtp-brevo.com) and the key itself.
-#   3. Put both in your shell, so neither is ever written into this repo:
-#        export DOORSTEP_SMTP_USER="the login from that page"
-#        export DOORSTEP_SMTP_PASS="the key from that page"
-#   4. Run ./tools/smtp-on.sh, which uncomments the two blocks below and pushes.
-#      Doing it in one step matters: a push from a config with pieces missing
-#      resets whatever it cannot see, which has already cost this project its
-#      rate limits and its MFA setting once.
+# The username is the literal word resend and is not a secret. The password is a
+# Resend API key and stays in the shell. To switch it on, see EMAIL.md, or:
+#
+#   export DOORSTEP_SMTP_PASS="re_..."
+#   ./tools/smtp-test.sh pristineremodelco@gmail.com
+#   ./tools/smtp-on.sh
 #
 # [auth.email.smtp]
 # enabled = true
-# host = "smtp-relay.brevo.com"
-# port = 587
-# user = "env(DOORSTEP_SMTP_USER)"
+# host = "smtp.resend.com"
+# port = 465
+# user = "resend"
 # pass = "env(DOORSTEP_SMTP_PASS)"
 # admin_email = "hello@doorstep.pristineremodelco.com"
 # sender_name = "Doorstep"
