@@ -5,7 +5,7 @@ import {
 import type { Session } from '@supabase/supabase-js'
 import { myProfile, type Profile } from '@doorstep/core'
 import { db } from './db'
-import { remember, remembering } from './accounts'
+import { remember, rememberPin, remembering } from './accounts'
 
 /**
  * Who is signed in, and their profile row.
@@ -65,6 +65,10 @@ export function SessionProvider ({ children }: { children: ReactNode }) {
           refreshToken: next.refresh_token,
           savedAt: new Date ().toISOString (),
         })
+        // So the next sign-in here knows whether to ask for a PIN or send an
+        // email, without asking the server. Kept current as a PIN is set or
+        // removed, since both arrive here as a change to the user.
+        rememberPin (next.user.email, next.user.user_metadata?.has_secret === true)
       }
     })
     return () => { alive = false; sub.subscription.unsubscribe () }

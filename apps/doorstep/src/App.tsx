@@ -14,7 +14,7 @@ import {
   disablePush, enablePush, installed, isIOS, pushState, registerWorker,
   type PushState,
 } from './push'
-import { forget, forgetAll, rememberThisDevice, remembering, roster, setRemembering } from './accounts'
+import { clearPinForgotten, forget, forgetAll, pinForgotten, rememberThisDevice, remembering, roster, setRemembering } from './accounts'
 import { Field, SettingsSection } from './SettingsSection'
 import { clearRecorded, errorDigest, recorded } from './errors'
 import { applyUpdate, checkForUpdate, dismissUpdate } from './updates'
@@ -151,6 +151,16 @@ function Shell ({ recovered }: { recovered: boolean }) {
   // Answered here rather than read back from the account, so the prompt goes
   // the moment it is answered instead of waiting for the session to refresh.
   const [pinAnswered, setPinAnswered] = useState (false)
+
+  // Emailing a code from the PIN screen only means a forgotten PIN if there is
+  // a PIN. For an account without one the mark is dropped as soon as they are
+  // in, or it would outlive its meaning and offer a reset later, for instance
+  // right after they set their first PIN.
+  useEffect (() => {
+    if (session && session.user.user_metadata?.has_secret !== true && pinForgotten ()) {
+      clearPinForgotten ()
+    }
+  }, [session])
   const [settings, setSettings] = useState<Settings> (loadSettings)
   // Read once, at mount. Turning the setting on should not yank the camera up
   // under the person changing it; it applies the next time the app is opened,
@@ -254,6 +264,19 @@ function Shell ({ recovered }: { recovered: boolean }) {
   // account rather than the device, so answering on a phone is not asked again
   // on a laptop, and never shown to someone who already has one.
   const meta = session.user.user_metadata ?? {}
+
+  // Came in by emailing a code from the PIN screen, with a PIN on the account:
+  // almost always a forgotten one. A PIN can be changed but never shown, so the
+  // offer is a new one, with keeping the old as the easy way past.
+  if (profile && meta.has_secret === true && pinForgotten () && !pinAnswered) {
+    return (
+      <div className="app">
+        <Bar title="Doorstep" />
+        <PinSetup mode="reset" onDone={() => { clearPinForgotten (); setPinAnswered (true) }} />
+      </div>
+    )
+  }
+
   if (profile && meta.has_secret !== true && meta.pin_prompted !== true && !pinAnswered) {
     return (
       <div className="app">
@@ -367,7 +390,8 @@ function Shell ({ recovered }: { recovered: boolean }) {
  *
  * Skipping is a real button, as easy to reach as setting one.
  */
-function PinSetup ({ onDone }: { onDone: () => void }) {
+function PinSetup ({ onDone, mode = 'offer' }: { onDone: () => void; mode?: 'offer' | 'reset' }) {
+  const resetting = mode === 'reset'
   const [pin, setPin] = useState ('')
   const [again, setAgain] = useState ('')
   const [busy, setBusy] = useState (false)
@@ -376,6 +400,8 @@ function PinSetup ({ onDone }: { onDone: () => void }) {
   const finish = async (withPin: boolean) => {
     if (!db || busy) return
     if (withPin && pin !== again) { setError ('Those two do not match.'); return }
+    // Keeping the PIN you already have changes nothing on the account.
+    if (resetting && !withPin) { onDone (); return }
     setBusy (true)
     setError (null)
     try {
@@ -395,9 +421,11 @@ function PinSetup ({ onDone }: { onDone: () => void }) {
   return (
     <main className="screen centered">
       <form className="stack" onSubmit={(e) => { e.preventDefault (); void finish (true) }}>
-        <h2>Add a PIN?</h2>
+        <h2>{resetting ? 'Set a new PIN?' : 'Add a PIN?'}</h2>
         <p className="muted">
-          Then you can sign in with your email and PIN, with no email to wait for.
+          {resetting
+            ? 'A PIN cannot be shown, only changed. Pick one you will remember, or keep the one you have.'
+            : 'Then you can sign in with your email and PIN, with no email to wait for.'}
         </p>
         <input
           className="input code-input"
@@ -419,10 +447,10 @@ function PinSetup ({ onDone }: { onDone: () => void }) {
           onChange={(e) => { setAgain (e.target.value.replace (/\D/g, '')); setError (null) }}
         />
         <button className="btn btn-primary btn-wide" type="submit" disabled={busy || !ready}>
-          {busy ? 'Saving' : 'Set PIN'}
+          {busy ? 'Saving' : resetting ? 'Set new PIN' : 'Set PIN'}
         </button>
         <button type="button" className="btn btn-secondary btn-wide" onClick={() => void finish (false)} disabled={busy}>
-          Skip
+          {resetting ? 'Keep my PIN' : 'Skip'}
         </button>
         {error && <p className="capture-error">{error}</p>}
         <p className="muted fine">You can add or change it any time in Settings.</p>
@@ -1473,8 +1501,8 @@ function SecretPanel () {
         {has === null
           ? 'Checking'
           : has
-            ? 'You have one set. You can still sign in with an emailed link at any time.'
-            : 'Optional. Without one, an emailed link is the only way in.'}
+            ? 'You sign in with your email and PIN. A PIN cannot be shown, only changed here. Forgotten it? Choose Forgot your PIN when signing in.'
+            : 'Optional. Without one, an emailed code is the only way in.'}
       </p>
 
       <input

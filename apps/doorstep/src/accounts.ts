@@ -169,3 +169,72 @@ export function forgetAll (): void {
     // Nothing to do.
   }
 }
+
+/**
+ * Which addresses use a PIN, as far as this device knows.
+ *
+ * With a PIN set, the sign-in screen should ask for it instead of sending an
+ * email. The obvious way to decide is to ask the server whether an address has
+ * one, and that would answer a second question for anybody typing addresses in:
+ * whether each one has a Doorstep account at all. So the device remembers,
+ * from the last time each account signed in here, and nothing is ever asked.
+ *
+ * Only kept on a device told to remember people. A borrowed phone learns
+ * nothing about who has a PIN.
+ */
+const PINS_KEY = 'doorstep.pins.v1'
+
+function readPins (): Record<string, boolean> {
+  try {
+    const parsed = JSON.parse (localStorage.getItem (PINS_KEY) ?? '{}')
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+/** true: uses a PIN. false: does not. null: this device has never seen it. */
+export function pinKnown (email: string): boolean | null {
+  const v = readPins ()[email.trim ().toLowerCase ()]
+  return typeof v === 'boolean' ? v : null
+}
+
+export function rememberPin (email: string, has: boolean): void {
+  if (!remembering ()) return
+  try {
+    const pins = readPins ()
+    pins[email.trim ().toLowerCase ()] = has
+    localStorage.setItem (PINS_KEY, JSON.stringify (pins))
+  } catch {
+    // Not remembered: the next sign-in simply asks which way in again.
+  }
+}
+
+/**
+ * Somebody chose to be emailed a code from the PIN screen, usually because the
+ * PIN is forgotten. Once they are in, they are offered a new one.
+ *
+ * In localStorage with a time on it rather than sessionStorage, because on an
+ * iPhone the home screen app is often closed by the system while the person is
+ * in Mail reading the code, and sessionStorage would not survive that. It lapses
+ * with the code, after thirty minutes.
+ */
+const FORGOT_KEY = 'doorstep.pin.forgot'
+const FORGOT_TTL_MS = 30 * 60 * 1000
+
+export function markPinForgotten (): void {
+  try { localStorage.setItem (FORGOT_KEY, String (Date.now ())) } catch { /* not essential */ }
+}
+
+export function pinForgotten (): boolean {
+  try {
+    const at = Number (localStorage.getItem (FORGOT_KEY))
+    return Number.isFinite (at) && at > 0 && Date.now () - at < FORGOT_TTL_MS
+  } catch {
+    return false
+  }
+}
+
+export function clearPinForgotten (): void {
+  try { localStorage.removeItem (FORGOT_KEY) } catch { /* not essential */ }
+}

@@ -4,7 +4,7 @@ import {
   signInWithPassword,
 } from '@doorstep/core'
 import { db, redirectTo } from '../db'
-import { forgetAll, remembering, roster, setRemembering } from '../accounts'
+import { forgetAll, markPinForgotten, pinKnown, remembering, roster, setRemembering } from '../accounts'
 import { installed, isIOS } from '../push'
 
 /**
@@ -41,10 +41,11 @@ export function SignIn () {
   const [stay, setStay] = useState (remembering)
   const [code, setCode] = useState ('')
   const [secret, setSecret] = useState ('')
-  // Offered rather than detected. Asking the server whether an address has a
-  // password would answer a different question out loud: whether it has an
-  // account at all.
-  const [usingSecret, setUsingSecret] = useState (false)
+  // The PIN step. Reached from Come In whenever this device knows the account
+  // has a PIN, or does not know either way; skipped straight to an email only
+  // when it knows there is none. Nothing is asked of the server to decide,
+  // since that would reveal which addresses have accounts.
+  const [askPin, setAskPin] = useState (false)
   const [forgot, setForgot] = useState (false)
   // Reaching the code box without sending anything.
   //
@@ -56,7 +57,7 @@ export function SignIn () {
   // Grey until the address could plausibly be delivered to, and until a secret
   // has been typed when one is being used.
   const addressLooksRight = looksLikeEmail (email)
-  const canSubmit = addressLooksRight && (!usingSecret || secret.length > 0)
+  const canSubmit = addressLooksRight
   const known = forgot ? [] : roster ()
   // A home screen app on an iPhone is the case that needs the paste, and the
   // case where the ordinary instruction is actively wrong.
@@ -80,18 +81,91 @@ export function SignIn () {
     // Decided before anything else, because it determines where the session is
     // written the moment one exists.
     setRemembering (stay)
+    // With a PIN, or possibly one, no email goes out: the PIN is the way in, and
+    // emailing a code is a choice offered on the next screen.
+    if (pinKnown (address) !== false) {
+      setBusy (false)
+      setAskPin (true)
+      return
+    }
+    await emailCode ()
+  }
+
+  const emailCode = async () => {
+    if (!db) return
+    setBusy (true)
+    setError (null)
     try {
-      if (usingSecret) {
-        await signInWithPassword (db, address, secret)
-        return
-      }
-      await sendSignInLink (db, address, redirectTo)
+      await sendSignInLink (db, email.trim (), redirectTo)
+      setAskPin (false)
       setSent (true)
     } catch (err) {
       setError (err instanceof Error ? err.message : 'That did not send. Try again.')
     } finally {
       setBusy (false)
     }
+  }
+
+  const enterPin = async (e: React.FormEvent) => {
+    e.preventDefault ()
+    if (!db || busy || !secret) return
+    setBusy (true)
+    setError (null)
+    try {
+      await signInWithPassword (db, email.trim (), secret)
+    } catch {
+      // The same words whether the PIN is wrong or the address has no account,
+      // which is what the server returns too, so this screen cannot be used to
+      // find out who has one.
+      setError ('That PIN did not match. Try again, or email yourself a code.')
+      setSecret ('')
+      setBusy (false)
+    }
+  }
+
+  if (askPin && !sent && !haveCode) {
+    const hasPin = pinKnown (email) === true
+    return (
+      <main className="screen centered">
+        <form className="stack" onSubmit={enterPin}>
+          <h2>Enter your PIN</h2>
+          <p className="muted">{email.trim ()}</p>
+          <input
+            className="input code-input"
+            type="password"
+            inputMode="numeric"
+            autoComplete="current-password"
+            placeholder="PIN"
+            autoFocus
+            value={secret}
+            onChange={(e) => { setSecret (e.target.value.replace (/\D/g, '')); setError (null) }}
+          />
+          <button className="btn btn-primary btn-wide" type="submit" disabled={busy || secret.length < 4}>
+            {busy ? 'Signing in' : 'Come In'}
+          </button>
+          {error && <p className="capture-error">{error}</p>}
+
+          {/* The way in without a PIN, and the way back for a forgotten one.
+              Choosing it also offers a new PIN once they are in, since a PIN
+              can be changed but never shown. */}
+          <button
+            type="button"
+            className="btn btn-secondary btn-wide"
+            disabled={busy}
+            onClick={() => { markPinForgotten (); void emailCode () }}
+          >
+            {hasPin ? 'Forgot your PIN? Email me a code' : 'No PIN? Email me a code'}
+          </button>
+          <button
+            type="button"
+            className="btn btn-quiet"
+            onClick={() => { setAskPin (false); setSecret (''); setError (null) }}
+          >
+            Use a different address
+          </button>
+        </form>
+      </main>
+    )
   }
 
   if (sent || haveCode) {
@@ -253,30 +327,8 @@ export function SignIn () {
           </span>
         </label>
 
-        {usingSecret && (
-          <input
-            className="input"
-            type="password"
-            autoComplete="current-password"
-            placeholder="Your password or PIN"
-            value={secret}
-            onChange={(e) => setSecret (e.target.value)}
-          />
-        )}
-
         <button className="btn btn-primary btn-wide" type="submit" disabled={busy || !canSubmit}>
-          {busy ? (usingSecret ? 'Signing in' : 'Sending') : 'Come In'}
-        </button>
-
-        <button
-          type="button"
-          className="link-btn"
-          disabled={!addressLooksRight}
-          onClick={() => { setUsingSecret (!usingSecret); setError (null) }}
-        >
-          {usingSecret
-            ? 'Email me a link instead'
-            : 'I have a password or PIN'}
+          {busy ? 'One moment' : 'Come In'}
         </button>
 
         <button
@@ -294,8 +346,8 @@ export function SignIn () {
           you used before and it brings your conversations back.
         </p>
         <p className="muted fine">
-          A password is optional. No phone number, ever. People reach you only
-          through a link or a code you gave them.
+          A PIN is optional. No phone number, ever. People reach you only through
+          a link or a code you gave them.
         </p>
       </form>
     </main>
