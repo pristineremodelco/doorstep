@@ -63,19 +63,19 @@ verify_enabled = true
 #   ./tools/smtp-test.sh pristineremodelco@gmail.com
 #   ./tools/smtp-on.sh
 #
-# [auth.email.smtp]
-# enabled = true
-# host = "smtp.resend.com"
-# port = 465
-# user = "resend"
-# pass = "env(DOORSTEP_SMTP_PASS)"
-# admin_email = "hello@doorstep.pristineremodelco.com"
-# sender_name = "Doorstep"
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 465
+user = "resend"
+pass = "env(DOORSTEP_SMTP_PASS)"
+admin_email = "hello@doorstep.pristineremodelco.com"
+sender_name = "Doorstep"
 
 # The branded email, leading with a code rather than a link. Supabase refuses
 # template changes while the built-in sender is in use, so this can only be
 # uncommented together with the block above.
 #
-# [auth.email.template.magic_link]
-# subject = "Your Doorstep code"
-# content_path = "./supabase/templates/magic_link.html"
+[auth.email.template.magic_link]
+subject = "Your Doorstep code"
+content_path = "./supabase/templates/magic_link.html"
