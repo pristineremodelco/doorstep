@@ -188,9 +188,6 @@ which need a phone.
 The app is in use on real iPhones and Android phones, so the ordinary paths
 have had real hardware. What has not:
 
-- **Flip, since its fix.** It could silently stay on the front camera. It now
-  asks for the other camera exactly, retries once, and says when it cannot;
-  checked against stand-in cameras in a browser, not yet on a phone.
 - **Tap to focus on Android.** Written for Chrome on Android, which exposes
   focus on most phones. An iPhone gives a website no focus control, so nothing
   happens there by design.
