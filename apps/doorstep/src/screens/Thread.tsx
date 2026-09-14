@@ -735,12 +735,6 @@ export function Thread ({
           <div className="capture-timer">
             <span className="capture-dot" />
             {formatDuration (elapsed)}
-            {/* A recording that stops itself without warning reads as a crash.
-                With the size limit it can end after little more than a minute,
-                so the last half minute is counted down. */}
-            {limit - elapsed < 15_000 && (
-              <span className="capture-remaining">{formatDuration (Math.max (0, limit - elapsed))} left</span>
-            )}
             {zoom !== null && zoomRange.current && zoom > zoomRange.current.min + 0.01 && (
               <span className="capture-remaining">{zoom.toFixed (1)}x</span>
             )}

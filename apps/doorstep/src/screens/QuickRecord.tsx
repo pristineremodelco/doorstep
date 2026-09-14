@@ -229,7 +229,6 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
 
   const recording = state === 'recording'
   const live = state === 'ready' || state === 'recording' || state === 'stopping'
-  const remaining = Math.max (0, limit - elapsed)
   const picking = capture !== null
 
   return (
@@ -271,9 +270,6 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
           <div className="capture-timer">
             <span className="capture-dot" />
             {formatDuration (elapsed)}
-            {remaining < 15_000 && (
-              <span className="capture-remaining">{formatDuration (remaining)} left</span>
-            )}
           </div>
         )}
       </div>

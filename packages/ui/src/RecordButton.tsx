@@ -127,20 +127,22 @@ export function RecordButton ({
     ? (recording ? 'Recording, let go to send' : 'Tap for a photo, hold to record')
     : (recording ? 'Stop recording' : 'Start recording')
 
-  // The ring is drawn from the recorder's own clock rather than animated on a
-  // timer of its own, so it can never disagree with the counter beside it.
+  // The ring is how much time is left. It fills from twelve o'clock to a full
+  // circle over the length of a recording, drawn from the recorder's own clock
+  // so it can never drift from the real limit.
   //
-  // It stays hidden until the limit is actually in sight. Against a five minute
-  // cap a message of ordinary length leaves a stray dot parked at twelve
-  // o'clock for its whole duration, which reads as a rendering fault rather
-  // than as information. Nothing is shown until there is something to say.
+  // It replaced a numeric countdown. A number counting down in the middle of
+  // the frame is something to read while you are trying to talk; a ring filling
+  // at the edge of your thumb says the same thing without asking for attention.
+  //
+  // It used to stay hidden until the last quarter, when the cap was five minutes
+  // and an ordinary message left a stray dot parked at the top for its whole
+  // length. At eighty seconds the ring visibly moves within a second, so it is
+  // shown throughout, fading in over the first moment to avoid that dot.
   const R = 36
   const CIRCUMFERENCE = 2 * Math.PI * R
   const used = Math.max (0, Math.min (1, progress))
-  const WARN_FROM = 0.75
-  const arcOpacity = recording && used > WARN_FROM
-    ? Math.min (1, (used - WARN_FROM) / 0.08)
-    : 0
+  const arcOpacity = recording ? Math.min (1, used / 0.015) : 0
 
   return (
     <button

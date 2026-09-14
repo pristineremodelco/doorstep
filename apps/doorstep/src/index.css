@@ -438,15 +438,18 @@ body {
    not so far that the target loses its edge under a thumb. */
 .shutter[data-recording="true"] .shutter-track { stroke: rgba(255, 255, 255, 0.45); }
 
-/* Drawn from the recorder's own clock, so the ring can never disagree with the
-   timer beside it. */
-/* Opacity is set inline from the elapsed fraction, so this only fades up as the
-   length limit comes into view. */
+/* How much of the recording is used, filling to a full circle at the limit.
+   The offset eases between the recorder's ticks so the sweep reads as one
+   continuous motion rather than a series of small jumps. */
 .shutter-progress {
   stroke: var(--live-solid);
   stroke-width: 4;
   stroke-linecap: round;
-  transition: opacity var(--settle);
+  transition: opacity var(--quick), stroke-dashoffset 120ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shutter-progress { transition: opacity var(--quick); }
 }
 
 .shutter-core {
@@ -2207,141 +2210,418 @@ p[data-warn="true"] {
 .install-nudge .nudge-title { gap: var(--s-2); color: var(--ink); }
 .install-nudge-icon { border-radius: 5px; display: block; }
 
-/* The guide sits over everything, including the pager, and holds the page still
-   underneath while it is open. */
 .guide-backdrop {
   position: fixed;
   inset: 0;
   z-index: 40;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  padding: var(--s-3);
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   animation: fade var(--quick) both;
 }
 
-@media (min-width: 560px) { .guide-backdrop { align-items: center; } }
-
 .guide {
-  width: min(100%, 440px);
-  max-height: 100dvh;
+  position: relative;
+  width: min(100%, 400px);
+  max-height: calc(100dvh - 24px);
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-3);
-  padding: var(--s-4) var(--s-4) calc(var(--s-4) + env(safe-area-inset-bottom));
+  padding: var(--s-5) var(--s-4) var(--s-4);
   background: var(--raised);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
   animation: sheet-rise var(--settle) both;
 }
 
-@media (min-width: 560px) { .guide { border-radius: var(--radius-lg); } }
-
-.guide-top { display: flex; justify-content: space-between; align-items: center; }
-.guide-count { font-size: 13px; color: var(--ink-quiet); font-variant-numeric: tabular-nums; }
-
-.guide-picture {
+/* A close control nobody has to hunt for: large, round, always top right, and
+   over the content rather than beside it so it never scrolls away. */
+.guide-x {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
-  min-height: 178px;
-  padding: var(--s-4);
-  border-radius: var(--radius);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
   background: var(--raised-high);
+  color: var(--ink);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--quick), transform var(--quick);
 }
+.guide-x:active { transform: scale(0.92); }
+.guide-x:focus-visible { outline: 2px solid var(--warm); outline-offset: 2px; }
 
-.guide-title {
+.guide-title { margin: 0; font-size: 21px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.25; }
+.guide-lead { margin: 0; color: var(--ink-quiet); line-height: 1.45; }
+
+.guide-safari {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  text-align: center;
+  padding-top: var(--s-3);
+}
+.guide-compass { color: #0a84ff; }
+
+.guide-watch { display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
+.guide-kicker {
   margin: 0;
-  font-size: 20px;
-  font-weight: 650;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
 }
 
-.guide-body { display: flex; flex-direction: column; gap: var(--s-2); }
-.guide-body p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--ink-quiet); }
-.install-copy { align-self: flex-start; }
-
-.guide-dots { display: flex; gap: 6px; justify-content: center; }
-.guide-dots span {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--ink-quiet); opacity: 0.35;
-  transition: opacity var(--quick), transform var(--quick);
+/* The replica phone. Proportioned like a modern iPhone, drawn in neutral greys
+   so the accent is reserved for the one thing to tap. */
+.phone {
+  width: 200px;
+  aspect-ratio: 9 / 18.5;
+  padding: 7px;
+  border-radius: 34px;
+  background: #0b0a09;
+  box-shadow: inset 0 0 0 2px #2a2724, 0 12px 30px rgba(0, 0, 0, 0.35);
 }
-.guide-dots span[data-on="true"] { opacity: 1; background: var(--warm); transform: scale(1.25); }
 
-.guide-nav { display: flex; justify-content: space-between; gap: var(--s-3); }
-.guide-nav .btn { min-width: 96px; }
-.guide-nav [data-invisible="true"] { visibility: hidden; }
+.phone-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 27px;
+  background: #f5f3f0;
+  color: #1a1613;
+  font-size: 11px;
+  animation: fade 260ms ease both;
+}
 
-.guide-foot { margin: 0; font-size: 12px; color: var(--ink-quiet); text-align: center; }
+/* The finger: walks in from the bottom, presses the button, and a ring spreads
+   from where it pressed, then goes round again. It repeats rather than playing
+   once, because somebody who stops on a step to read it would otherwise find
+   the finger had come and gone before they looked. */
+.finger {
+  position: absolute;
+  left: var(--fx);
+  top: var(--fy);
+  z-index: 5;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border-radius: 50%;
+  background: rgba(26, 22, 19, 0.28);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95), 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: finger-walk 3400ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes finger-walk {
+  0%   { left: 50%; top: 118%; opacity: 0; transform: scale(1); }
+  12%  { opacity: 1; }
+  38%  { left: var(--fx); top: var(--fy); transform: scale(1); }
+  46%  { transform: scale(0.72); }
+  54%  { transform: scale(1); }
+  88%  { left: var(--fx); top: var(--fy); opacity: 1; }
+  100% { left: var(--fx); top: var(--fy); opacity: 0; }
+}
+
+.finger-ring {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid var(--warm);
+  opacity: 0;
+  animation: finger-ring 3400ms ease-out infinite;
+}
+
+@keyframes finger-ring {
+  0%, 44% { transform: scale(0.6); opacity: 0; }
+  48%     { opacity: 0.9; }
+  78%     { transform: scale(2.4); opacity: 0; }
+  100%    { opacity: 0; }
+}
+
+/* Still: the finger sits on the target, no walking, no ring. */
+.phone-screen[data-still="true"] .finger { animation: none; }
+.phone-screen[data-still="true"] .finger-ring { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .guide, .guide-backdrop { animation: none; }
+  .finger, .finger-ring, .phone-screen { animation: none !important; }
+  .finger-ring { display: none; }
 }
 
-/* Pictures. Plain shapes in the app's own palette; the one thing to tap in each
-   is ringed in the accent colour. */
-.glyph { display: block; flex: 0 0 auto; }
-.glyph-inline { display: inline-block; vertical-align: -3px; width: 15px; height: 15px; }
-
-.mock { width: 100%; max-width: 300px; color: var(--ink); }
-
-.mock-hit {
-  box-shadow: 0 0 0 2px var(--warm), 0 0 0 7px rgba(224, 149, 79, 0.22);
-  animation: hit-pulse 1.8s ease-in-out infinite;
+.guide-caption {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  align-self: stretch;
+  min-height: 48px;
+  font-size: 17px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
 }
 
-@keyframes hit-pulse {
-  0%, 100% { box-shadow: 0 0 0 2px var(--warm), 0 0 0 7px rgba(224, 149, 79, 0.22); }
-  50%      { box-shadow: 0 0 0 2px var(--warm), 0 0 0 11px rgba(224, 149, 79, 0.08); }
+.guide-step {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--warm);
+  color: var(--on-warm);
+  font-size: 13px;
+  font-weight: 700;
 }
 
-@media (prefers-reduced-motion: reduce) { .mock-hit { animation: none; } }
-
-.mock-faint { background: var(--raised); opacity: 0.7; }
-.mock-faint-text { color: var(--ink-quiet); font-size: 12px; }
-
-.mock-bar { display: flex; align-items: center; gap: var(--s-2); }
-.mock-pill {
-  flex: 1; min-width: 0;
-  display: flex; align-items: center; gap: 6px;
-  height: 40px; padding: 0 14px;
-  border-radius: 999px; background: var(--raised);
-  font-size: 13px; color: var(--ink-quiet);
-  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+.guide-dots { display: flex; gap: 4px; justify-content: center; }
+.guide-dots button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
 }
-.mock-lock { width: 8px; height: 10px; border-radius: 2px; background: var(--ink-quiet); opacity: 0.6; flex: 0 0 auto; }
-.mock-more {
-  width: 40px; height: 40px; border-radius: 50%;
-  display: grid; place-items: center;
-  background: var(--raised); font-size: 13px; letter-spacing: 1px; font-weight: 700;
+.guide-dots button::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-quiet);
+  opacity: 0.35;
+  transition: opacity var(--quick), transform var(--quick), background var(--quick);
+}
+.guide-dots button[data-on="true"]::before { opacity: 1; background: var(--warm); transform: scale(1.3); }
+
+.guide-nav { display: flex; justify-content: space-between; gap: var(--s-2); align-self: stretch; }
+.guide-nav .btn { flex: 1; }
+
+/* --- Pointing at the real button. --- */
+
+/* A card at the top, so the bottom edge of the page stays clear for the arrow
+   and for Safari's own bar just below it. */
+.pointer-card {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 10px);
+  left: 10px;
+  right: 10px;
+  z-index: 40;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: var(--s-4) var(--s-4) var(--s-3);
+  border-radius: 22px;
+  background: var(--raised);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  animation: sheet-rise var(--settle) both;
 }
 
-.mock-menu { display: flex; flex-direction: column; gap: 6px; }
-.mock-row {
-  display: flex; align-items: center; justify-content: space-between;
-  height: 40px; padding: 0 14px; border-radius: 12px;
+.pointer-title { margin: 0 52px var(--s-2) 0; font-size: 19px; font-weight: 650; letter-spacing: -0.02em; }
+
+.pointer-steps {
+  margin: 0 0 var(--s-2);
+  padding-left: 1.25em;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   font-size: 15px;
+  line-height: 1.35;
 }
-.mock-row.mock-hit { background: var(--raised); }
-.mock-row.mock-faint { height: 30px; }
+.pointer-steps li::marker { color: var(--warm); font-weight: 700; }
+.pointer-steps b { font-weight: 650; }
 
-.mock-dialog { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-3); border-radius: 14px; background: var(--raised); }
-.mock-dialog-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
-.mock-dialog-title { font-size: 13px; font-weight: 650; }
-.mock-add { font-size: 14px; font-weight: 700; color: var(--warm); padding: 3px 9px; border-radius: 8px; }
-.mock-dialog-app { display: flex; align-items: center; gap: var(--s-3); }
-.mock-dialog-app img { border-radius: 10px; display: block; }
-.mock-dialog-app > span { display: flex; flex-direction: column; min-width: 0; font-size: 14px; }
-.mock-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 10px; font-size: 14px; }
-.mock-toggle { width: 42px; height: 25px; border-radius: 999px; background: #34c759; position: relative; flex: 0 0 auto; }
-.mock-toggle span { position: absolute; top: 2px; right: 2px; width: 21px; height: 21px; border-radius: 50%; background: #fff; }
+.pointer-hint { margin: 0 0 var(--s-3); font-size: 12px; line-height: 1.45; color: var(--ink-quiet); }
+.pointer-actions { display: flex; justify-content: space-between; align-items: center; }
 
-.mock-home { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; justify-items: center; max-width: 240px; }
-.mock-app { width: 44px; height: 44px; border-radius: 11px; }
-.mock-app-labelled { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px; border-radius: 14px; font-size: 10px; }
-.mock-app-labelled img { border-radius: 11px; display: block; }
+/* Aimed at the bottom right, where Safari's ••• sits beside the address bar by
+   default. It ignores touches so it can never cover a real tap. */
+.pointer-arrow {
+  position: fixed;
+  right: 16px;
+  bottom: calc(env(safe-area-inset-bottom) + 6px);
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--warm);
+  pointer-events: none;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.55));
+  animation: pointer-bounce 1.1s ease-in-out infinite;
+}
 
-.mock-compass { color: #0a84ff; }
+.pointer-label {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--warm);
+  color: var(--on-warm);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+@keyframes pointer-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(12px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pointer-arrow, .pointer-card, .guide, .guide-backdrop { animation: none; }
+}
+
+/* --- The scenes inside the phone. --- */
+
+.faint-text { color: #8a817a; }
+
+.scene-page { position: absolute; inset: 0; padding: 38px 14px; display: flex; flex-direction: column; gap: 8px; }
+.scene-line { height: 7px; border-radius: 4px; background: #dcd6cf; }
+.scene-line.w40 { width: 40%; } .scene-line.w55 { width: 55%; } .scene-line.w70 { width: 70%; }
+.scene-line.w80 { width: 80%; } .scene-line.w90 { width: 90%; }
+.scene-block { height: 70px; border-radius: 10px; background: #e6e0d9; margin: 4px 0; }
+
+.scene-bar {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 10px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.scene-pill {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  font-size: 10px;
+  color: #6b625b;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.scene-more {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+.scene-more.target { box-shadow: 0 0 0 2px var(--warm), 0 2px 8px rgba(0, 0, 0, 0.12); }
+
+.scene-dim { position: absolute; inset: 0; z-index: 2; background: rgba(0, 0, 0, 0.22); }
+
+.scene-menu {
+  position: absolute;
+  right: 8px;
+  bottom: 48px;
+  z-index: 4;
+  width: 62%;
+  padding: 5px;
+  border-radius: 14px;
+  background: rgba(250, 248, 245, 0.97);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.scene-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.scene-row.faint { background: #ece7e1; min-height: 20px; }
+.scene-row.target { background: #fff; box-shadow: 0 0 0 2px var(--warm); }
+
+.scene-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  height: 72%;
+  padding: 8px 10px;
+  border-radius: 18px 18px 0 0;
+  background: #f3f0ec;
+  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.scene-grab { align-self: center; width: 34px; height: 4px; border-radius: 2px; background: #cfc8c0; margin-bottom: 4px; }
+.scene-apps { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.scene-apps span { width: 34px; height: 34px; border-radius: 10px; background: #ddd6ce; }
+
+.scene-dialog {
+  position: absolute;
+  inset: 0;
+  padding: 30px 10px 10px;
+  background: #f3f0ec;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.scene-dialog-top { display: flex; align-items: center; justify-content: space-between; }
+.scene-dialog-title { font-size: 10px; font-weight: 700; }
+.scene-add { padding: 3px 8px; border-radius: 7px; font-weight: 700; color: #b8742f; box-shadow: 0 0 0 2px var(--warm); }
+.scene-dialog-app { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 10px; background: #fff; font-weight: 600; }
+.scene-dialog-app img { border-radius: 8px; display: block; }
+.scene-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 8px; border-radius: 10px; background: #fff; font-weight: 600; }
+.scene-toggle { width: 34px; height: 20px; border-radius: 999px; background: #34c759; position: relative; }
+.scene-toggle span { position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+
+.scene-home {
+  position: absolute;
+  inset: 0;
+  padding: 44px 14px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 58px;
+  gap: 6px;
+  justify-items: center;
+  background: linear-gradient(160deg, #3b3632, #1c1917);
+}
+.scene-app { width: 38px; height: 38px; border-radius: 10px; }
+.scene-app.faint { background: rgba(255, 255, 255, 0.16); }
+.scene-app-real {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 9px;
+}
+.scene-app-real img { border-radius: 10px; display: block; }
+.scene-app-real.target { box-shadow: 0 0 0 2px var(--warm); }

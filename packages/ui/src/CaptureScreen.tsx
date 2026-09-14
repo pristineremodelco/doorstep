@@ -175,7 +175,6 @@ export function CaptureScreen ({
   // 'stopping' counts, so the row does not vanish for the moment between a lift
   // and the clip being ready.
   const shooting = !reviewing && (state === 'ready' || state === 'recording' || state === 'stopping')
-  const remaining = Math.max (0, limit - elapsed)
 
   return (
     <div className="capture">
@@ -206,11 +205,6 @@ export function CaptureScreen ({
           <div className="capture-timer">
             <span className="capture-dot" />
             {formatDuration (elapsed)}
-            {remaining < 15_000 && (
-              <span className="capture-remaining">
-                {formatDuration (remaining)} left
-              </span>
-            )}
           </div>
         )}
 
