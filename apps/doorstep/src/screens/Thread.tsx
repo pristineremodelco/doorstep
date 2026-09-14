@@ -181,8 +181,13 @@ export function Thread ({
         onElapsed: setElapsed,
         onLimit: setLimit,
       })
+      recorderRef.current?.close ()
       recorderRef.current = rec
       const stream = await rec.open ()
+      // Opened twice, by a second tap on Turn on camera or a setting that
+      // reopens it, the older camera was never let go of. A phone holding the
+      // front camera will not open the back one, so Flip then failed.
+      if (recorderRef.current !== rec) { rec.close (); return }
       zoomRange.current = rec.zoomRange ()
       setZoom (zoomRange.current ? rec.zoom () : null)
       if (previewRef.current) {
@@ -389,10 +394,23 @@ export function Thread ({
   }, [holdToSave, keep])
 
   const flip = useCallback (async () => {
+    const rec = recorderRef.current
+    if (!rec) return
+    const was = rec.facingUser
+    setError (null)
     try {
-      const stream = await recorderRef.current!.flip ()
-      if (previewRef.current) previewRef.current.srcObject = stream
-      setFacingUser (recorderRef.current!.facingUser)
+      const stream = await rec.flip ()
+      // Played, not only attached. A new stream on a preview whose old tracks
+      // have just stopped can sit on the last frame, on an iPhone especially,
+      // which looks exactly like a Flip button that does nothing.
+      if (previewRef.current) {
+        previewRef.current.srcObject = stream
+        await previewRef.current.play ().catch (() => undefined)
+      }
+      zoomRange.current = rec.zoomRange ()
+      setZoom (zoomRange.current ? rec.zoom () : null)
+      setFacingUser (rec.facingUser)
+      if (rec.facingUser === was) setError ('The other camera did not open. If another app is using it, close that and try again.')
     } catch (e) {
       setError (describe (e))
     }

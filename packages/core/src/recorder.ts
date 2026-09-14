@@ -169,6 +169,8 @@ export interface RecorderOptions {
 
 export class VideoRecorder {
   private stream: MediaStream | null = null
+  /** Set only while flipping, so the first open stays a preference. */
+  private exactFacing = false
   /**
    * A hidden video element bound to the stream for as long as the camera is
    * open, because both the poster and the photo are read from it.
@@ -227,7 +229,7 @@ export class VideoRecorder {
 
     this.stream = await navigator.mediaDevices.getUserMedia ({
       video: {
-        facingMode: facing,
+        facingMode: this.exactFacing ? { exact: facing } : facing,
         // Asked for on the long edge, so a phone held upright is not talked
         // into recording a landscape frame and rotating it.
         width: { ideal: want.width },
@@ -441,16 +443,36 @@ export class VideoRecorder {
     const next = previous === 'environment' ? 'user' : 'environment'
     this.close ()
     this.opts.facing = next
-    try {
-      return await this.open ()
-    } catch (e) {
-      this.opts.facing = previous
+
+    // Asked for exactly, then asked again after a pause, then asked loosely.
+    //
+    // A loose facingMode is only a preference, and a browser is free to hand
+    // back the camera it already had, which looks exactly like a button that
+    // does nothing. Asking exactly rules that out. The pause is for phones that
+    // are slow to let go of the camera just stopped and refuse the other one
+    // until they have: Android reports that as NotReadableError. The loose ask
+    // is last, for a camera that does not say which way it faces, and it only
+    // counts if the camera it opens does not say it faces the old way.
+    for (const [exact, wait] of [[true, 0], [true, FLIP_RETRY_MS], [false, 0]] as const) {
+      if (wait) await new Promise ((r) => setTimeout (r, wait))
+      this.exactFacing = exact
       try {
-        return await this.open ()
+        const stream = await this.open ()
+        const faces = stream.getVideoTracks ()[0]?.getSettings ().facingMode
+        if (!faces || faces === next) return stream
+        this.close ()
       } catch {
-        throw e
+        this.close ()
+      } finally {
+        this.exactFacing = false
       }
     }
+
+    // Nothing on the other side, which is normal on a laptop with one camera.
+    // The previous camera is put back rather than leaving a dead preview, and
+    // the caller can tell from facingUser that nothing changed.
+    this.opts.facing = previous
+    return await this.open ()
   }
 
   /**
@@ -718,6 +740,9 @@ const STOP_TIMEOUT_MS = 3000
 
 /** Longest to wait for the camera's first frame before allowing a record. */
 const FIRST_FRAME_TIMEOUT_MS = 2500
+
+/** How long a phone gets to release one camera before the other is asked for again. */
+const FLIP_RETRY_MS = 400
 
 /** Let exposure and white balance settle after the first frame arrives. */
 const CAMERA_SETTLE_MS = 220

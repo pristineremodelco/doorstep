@@ -7,6 +7,7 @@ import {
   type VideoQuality,
 } from '@doorstep/core'
 import { db } from '../db'
+import { Avatar } from '../Avatar'
 import { enqueue, markFailed, permanent, remove, type Pending } from '../outbox'
 import { pointInPicture } from '../focus'
 
@@ -73,8 +74,13 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
         onElapsed: setElapsed,
         onLimit: setLimit,
       })
+      recorderRef.current?.close ()
       recorderRef.current = rec
       const stream = await rec.open ()
+      // Opened twice, by a second tap on Turn on camera or a setting that
+      // reopens it, the older camera was never let go of. A phone holding the
+      // front camera will not open the back one, so Flip then failed.
+      if (recorderRef.current !== rec) { rec.close (); return }
       zoomRange.current = rec.zoomRange ()
       if (previewRef.current) {
         previewRef.current.srcObject = stream
@@ -176,10 +182,22 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
   }, [mode, offer])
 
   const flip = useCallback (async () => {
+    const rec = recorderRef.current
+    if (!rec) return
+    const was = rec.facingUser
+    setError (null)
     try {
-      const stream = await recorderRef.current!.flip ()
-      if (previewRef.current) previewRef.current.srcObject = stream
-      setFacingUser (recorderRef.current!.facingUser)
+      const stream = await rec.flip ()
+      // Played, not only attached. A new stream on a preview whose old tracks
+      // have just stopped can sit on the last frame, on an iPhone especially,
+      // which looks exactly like a Flip button that does nothing.
+      if (previewRef.current) {
+        previewRef.current.srcObject = stream
+        await previewRef.current.play ().catch (() => undefined)
+      }
+      zoomRange.current = rec.zoomRange ()
+      setFacingUser (rec.facingUser)
+      if (rec.facingUser === was) setError ('The other camera did not open. If another app is using it, close that and try again.')
     } catch (e) {
       setError (describe (e))
     }
@@ -435,9 +453,11 @@ function RecipientPicker ({
                   onClick={() => onSend (row, shown)}
                   disabled={sending !== null || already}
                 >
-                  <span className="avatar" aria-hidden="true">
-                    {face ? <img src={face} alt="" /> : shown.slice (0, 1).toUpperCase ()}
-                  </span>
+                  <Avatar
+                    name={row.nickname ?? row.other?.display_name}
+                    seed={row.other?.id ?? row.thread.id}
+                    src={face}
+                  />
                   <span className="thread-copy">
                     <span className="thread-name">{shown}</span>
                     {row.favorite && <span className="thread-preview">Favourite</span>}
