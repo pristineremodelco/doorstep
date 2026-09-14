@@ -68,7 +68,10 @@ else:
 PY
 
 echo
-supabase config push --project-ref "$PROJECT_REF"
+# --yes, so the push does not stop to ask. A confirmation prompt in the middle of
+# a one-command script is where somebody types yes as a word, which on a Mac is
+# a command of its own that prints y forever.
+supabase config push --project-ref "$PROJECT_REF" --yes
 
 cat <<'DONE'
 
