@@ -7,6 +7,7 @@ paywall that ought to be free.
     npm run dev
 
 Runs at http://localhost:5180. With no Supabase configured it works entirely on
-this machine, which is enough to exercise recording and playback.
+this machine, which is enough to exercise recording and playback. Live at
+https://doorstep-9qi.pages.dev; `npm run deploy` publishes it.
 
 See `HANDOFF.md` for where things stand and what has actually been verified.

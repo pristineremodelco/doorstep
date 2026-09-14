@@ -9,8 +9,17 @@ Two products were planned, sharing one core. Only the first is being built now:
   carries `threads.kind` so it can be added without a migration, and nothing
   else about it is decided yet.
 
-Run it with `npm run dev`. With no Supabase configured it runs entirely on this
-machine: record, review and rewatch all work and nothing is uploaded.
+Live at https://doorstep-9qi.pages.dev, on a Supabase project with every
+migration in `supabase/migrations` applied. Run it locally with `npm run dev`.
+With no Supabase configured it runs entirely on this machine: record, review
+and rewatch all work and nothing is uploaded.
+
+The name is not settled. Entrii is being considered and depends on things
+outside the code; nothing should be renamed until that is decided.
+
+Avatars (a face-read cartoon beside the door) are being explored on the
+`avatars` branch, checked out at `../doorstep-avatars`. They are not on main and
+main should not depend on them.
 
 ## Decisions worth not relitigating
 
@@ -66,16 +75,38 @@ machine: record, review and rewatch all work and nothing is uploaded.
   MediaStream costs a black frame and on iOS can reprompt for permission.
 - **The preview is mirrored, the recording is not.** People expect to see
   themselves mirrored; text held up to the lens must read correctly.
+- **Sign in is an emailed code, with an optional PIN.** No passwords to forget.
+  Once an account has a PIN, Come In asks for it and sends nothing; the email
+  is the way back for a forgotten one. A PIN can be changed, never shown.
+- **Whether to ask for a PIN is decided on the device.** Asking the server would
+  tell anyone typing addresses which ones have accounts. The device remembers
+  from each account's last sign-in, and asks for a PIN when it does not know.
+- **The home screen app on an iPhone signs in by code, not by link.** Apple
+  keeps its storage apart from Safari, and the email's link opens Safari and
+  spends the code on the way. Safari offers a fresh code to type into the app.
 - **No em dashes anywhere in the project.**
 - **Interface copy does not explain the build.** Reasoning lives in commits and
   comments.
 
 ## What exists
 
-    packages/core   types, Supabase client, invite tokens, recorder, data layer
-    packages/ui     CaptureScreen and RecordButton, shared by both shells
-    apps/doorstep   the friends and family shell, plus manifest and icons
-    supabase/       schema.sql, not yet applied to any project
+    packages/core      types, Supabase client, invite tokens, recorder, data layer
+    packages/ui        capture screen, shutter, icons, the door, shared by both shells
+    apps/doorstep      the friends and family shell, manifest, icons, service worker
+    supabase/          schema.sql, migrations (all applied), edge functions
+                       (app-code, delete-account, notify, sweep-unconfirmed),
+                       the branded sign-in email template
+    tools/e2e.mjs      end-to-end checks against the live project; run before
+                       and after anything that touches the database or sign-in
+    tools/icons.mjs    builds every icon size from measurements
+    tools/backup.mjs   see BACKUPS.md
+
+`npm run typecheck`, `npm run lint` and `npm run build` should all pass. Lint
+carries a set of existing React warnings; a change should not add to them.
+
+The sections below, from "Verified" to "Found in the second pass", record the
+first build, before Supabase existed. They stay as the history of why the
+recorder is shaped the way it is.
 
 ## Verified, with the method
 
@@ -154,21 +185,18 @@ which need a phone.
 
 ## Not yet verified
 
-- **No real camera, and no phone.** The permission prompt, actual hardware,
-  iOS Safari specifically, and background or lock-screen behaviour mid-recording
-  are all untested. So is a real finger: pointer events were dispatched, not
-  touched, so palm rejection and a thumb dragging off the shutter mid-sentence
-  are unproven. `npm run dev:lan` serves over HTTPS for exactly this, because
-  `getUserMedia` refuses outside a secure context and a phone on plain http gets
-  no camera and no useful error. The certificate is self-signed, so the phone
-  warns once and you accept.
-- **The per-copy retention model has never run.** `message_copies`, the minting
-  trigger, the sweep and `retract_message` are written and unexecuted.
-- No Supabase project exists yet, so `schema.sql` has never been applied and
-  nothing in `data.ts` has run against a database.
-- The `media` storage bucket and its policies are not written.
-- The expiry sweeper needs an edge function to remove objects from the bucket.
-  `sweep_expired()` marks rows; nothing yet deletes bytes.
+The app is in use on real iPhones and Android phones, so the ordinary paths
+have had real hardware. What has not:
+
+- **Flip, since its fix.** It could silently stay on the front camera. It now
+  asks for the other camera exactly, retries once, and says when it cannot;
+  checked against stand-in cameras in a browser, not yet on a phone.
+- **Tap to focus on Android.** Written for Chrome on Android, which exposes
+  focus on most phones. An iPhone gives a website no focus control, so nothing
+  happens there by design.
+- **The second redesign pass with real data.** The QR code screen and the
+  per-person avatar colours were checked with a test account that had no
+  conversations and no working code.
 - Desktop is a 560px column centred in the window. It works and is not pretty.
 
 ## Testing on a phone
@@ -201,9 +229,13 @@ at all. `public/_redirects` rewrites every unmatched path to the shell with a
 200 rather than a redirect, so an invite link keeps its token in the address
 bar, which is the only place the token ever lives.
 
-No service worker yet, deliberately. Offline caching during active development
-mostly produces "why am I still seeing yesterday's build", and installability on
-iOS does not require one. Worth adding once the shape settles.
+Pushing to GitHub does not deploy. Nothing goes live until `npm run deploy`
+runs.
+
+The service worker, `public/sw.js`, exists only to receive push notifications
+and does no offline caching, deliberately: a cached build that will not update
+is a worse problem than a page that needs the network. Updates are noticed by
+comparing the running build with `version.json`.
 
 If you would rather match Almanac's Git integration than upload directly, the
 Pages build settings are: build command `npm run build`, output directory
@@ -211,14 +243,14 @@ Pages build settings are: build command `npm run build`, output directory
 
 ## The sign-in email
 
-Unbranded, and capped at two an hour by Supabase's built-in sender. Both have
-the same fix and it is free. See EMAIL.md; the template and the config block are
-already written and waiting to be switched on.
+Branded, sent through Resend from doorstep.pristineremodelco.com. See EMAIL.md.
+
+Never run `supabase config push` without `DOORSTEP_SMTP_PASS` set in the
+environment. The SMTP password is read from it, and pushing without it blanks
+the password on the project, which stops every sign-in email.
 
 ## Open questions
 
-- Auth for the friends side: email link, or something else.
-- Auth for the friends side is still the main unknown before any of the
-  Supabase work can start.
-- Push notifications. On iOS these need the app installed to the home screen,
-  and unreliable notifications are a top complaint about the incumbent.
+- The name: Doorstep or Entrii, waiting on outside factors.
+- Avatars: whether they belong at all. Exploratory, on the `avatars` branch.
+- Doorbell, the client intake: deferred, nothing decided beyond `threads.kind`.

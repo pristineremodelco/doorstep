@@ -11,7 +11,7 @@
     "dev": "npm run dev -w @doorstep/app",
     "build": "npm run build -w @doorstep/app",
     "lint": "oxlint",
-    "typecheck": "tsc -b",
+    "typecheck": "tsc -b apps/doorstep",
     "dev:lan": "npm run dev:lan -w @doorstep/app",
     "deploy": "npm run deploy -w @doorstep/app",
     "cf:login": "wrangler login",

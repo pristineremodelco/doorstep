@@ -33,7 +33,7 @@ business address, and means the root's own SPF and MX records are never touched.
 2. **Domains**, **Add Domain**, enter `doorstep.pristineremodelco.com`.
 3. It lists three records. Keep that tab open.
 
-**In Hostinger** — hPanel, Domains, pristineremodelco.com, DNS / Nameservers,
+**In Hostinger**: hPanel, Domains, pristineremodelco.com, DNS / Nameservers,
 Manage DNS records. For each of Resend's records:
 
 4. **Type**: what Resend shows.
@@ -89,6 +89,6 @@ the admin API for a code, which sends no email and so cannot be rate limited:
 
 Read the code out to them. On their phone: type their address, tap **I already
 have a code**, type it in. Good once, for thirty minutes. Treat it as their
-password for that half hour — anyone holding it can sign in as them.
+password for that half hour: anyone holding it can sign in as them.
 
 This works whether or not custom SMTP is ever configured.
