@@ -411,7 +411,7 @@ function RecipientPicker ({
             Done
           </button>
         ) : (
-          <button className="btn btn-secondary btn-compact btn-destructive" onClick={onDiscard}>
+          <button className="btn btn-danger btn-compact" onClick={onDiscard}>
             <Icon name="trash" size={18} />
             Delete
           </button>

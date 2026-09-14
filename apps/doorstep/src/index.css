@@ -2900,12 +2900,10 @@ p[data-warn="true"] {
   font-size: 15px;
 }
 
-/* Destructive, said in colour on an otherwise ordinary button. Its own name:
-   this was a second .btn-danger, and .btn-danger already means a red button
-   with dark text, so the two together set red text on red and the word
-   vanished from every button using either. */
-.btn-destructive { color: var(--live-solid); }
-.btn-destructive .icon { color: var(--live-solid); }
+/* Red with dark text, for Delete, Block and Delete for good alike. Dark on this
+   red measures 4.9:1, where white would be 3.7:1. There was once a second
+   .btn-danger meaning red text, and the two together set red on red. */
+.btn-danger .icon { color: currentColor; }
 
 [data-invisible="true"] { visibility: hidden; }
 
