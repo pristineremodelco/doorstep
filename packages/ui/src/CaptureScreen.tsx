@@ -4,6 +4,7 @@ import {
   pickMimeType, type Capture, type RecorderState,
 } from '@doorstep/core'
 import { RecordButton, type ShutterMode } from './RecordButton'
+import { Icon } from './Icon'
 
 /**
  * The camera screen, shared by both shells.
@@ -43,6 +44,7 @@ export function CaptureScreen ({
   const [error, setError] = useState<string | null> (null)
   const [sending, setSending] = useState (false)
   const [capped, setCapped] = useState (false)
+  const [facingUser, setFacingUser] = useState (true)
 
   const supported = isRecordingSupported ()
 
@@ -131,6 +133,7 @@ export function CaptureScreen ({
     try {
       const stream = await recorderRef.current!.flip ()
       if (previewRef.current) previewRef.current.srcObject = stream
+      setFacingUser (recorderRef.current!.facingUser)
     } catch (e) {
       setError (describe (e))
     }
@@ -186,6 +189,7 @@ export function CaptureScreen ({
           muted
           autoPlay
           data-hidden={reviewing}
+          data-mirror={facingUser}
         />
         {reviewing && capture.kind === 'photo' && (
           <img className="capture-video capture-review" src={reviewUrl ?? undefined} alt="" />
@@ -226,12 +230,13 @@ export function CaptureScreen ({
         {shooting && (
           <>
             <button
-              className="btn btn-quiet"
+              className="cam-ctrl"
               onClick={onCancel}
               disabled={recording || !onCancel}
               data-invisible={!onCancel}
             >
-              Back
+              <Icon name="back" />
+              <span>Back</span>
             </button>
             <RecordButton
               mode={shutter}
@@ -241,16 +246,18 @@ export function CaptureScreen ({
               onStop={stop}
               onPhoto={photo}
             />
-            <button className="btn btn-quiet" onClick={flip} disabled={recording}>
-              Flip
+            <button className="cam-ctrl" onClick={flip} disabled={recording}>
+              <Icon name="flip" />
+              <span>Flip</span>
             </button>
           </>
         )}
 
         {reviewing && (
           <>
-            <button className="btn btn-quiet" onClick={discard} disabled={sending}>
-              Discard
+            <button className="cam-ctrl cam-ctrl-danger" onClick={discard} disabled={sending}>
+              <Icon name="trash" />
+              <span>Delete</span>
             </button>
             <button className="btn btn-primary" onClick={send} disabled={sending}>
               {sending ? 'Sending' : sendLabel}

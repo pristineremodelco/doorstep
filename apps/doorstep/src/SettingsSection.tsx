@@ -1,4 +1,5 @@
 import { useCallback, useState, type ReactNode } from 'react'
+import { Icon } from '@doorstep/ui'
 
 /**
  * A settings section that is closed until asked for, and can be pinned open.
@@ -80,7 +81,7 @@ export function SettingsSection ({ id, title, summary, children }: SettingsSecti
           aria-expanded={open}
           aria-controls={`fold-${id}`}
         >
-          <span className="fold-caret" aria-hidden="true">▸</span>
+          <span className="fold-caret" aria-hidden="true"><Icon name="chevron-right" size={18} /></span>
           <span className="fold-title">{title}</span>
           {!open && summary && <span className="fold-summary">{summary}</span>}
         </button>
@@ -91,7 +92,7 @@ export function SettingsSection ({ id, title, summary, children }: SettingsSecti
           aria-label={pinned ? `Unpin ${title}` : `Keep ${title} open`}
           title={pinned ? 'Unpin' : 'Keep open'}
         >
-          {pinned ? '★' : '☆'}
+          <Icon name="pin" size={18} />
         </button>
       </div>
       {open && <div className="fold-body" id={`fold-${id}`}>{children}</div>}

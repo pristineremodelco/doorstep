@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Filmstrip, ModeBar, RecordButton, Reactions,
+  Filmstrip, Icon, ModeBar, RecordButton, Reactions,
   type CaptureMode, type ShutterMode, type Strip,
 } from '@doorstep/ui'
 import type { Capture } from '@doorstep/core'
@@ -16,6 +16,7 @@ import { db } from '../db'
 import { asCapture, enqueue, markFailed, pending, permanent, remove, type Pending } from '../outbox'
 import { clearDraft, draftAsCapture, loadDraft, saveDraft } from '../drafts'
 import { ChatView } from './ChatView'
+import { pointInPicture } from '../focus'
 
 /**
  * A conversation, which is also the camera.
@@ -84,6 +85,13 @@ export function Thread ({
   const [reviewUrl, setReviewUrl] = useState<string | null> (null)
   const [cameraOpen, setCameraOpen] = useState (false)
   const [zoom, setZoom] = useState<number | null> (null)
+  // Which camera is in use. The preview mirrors only the selfie camera: it used
+  // to mirror whenever the setting was on, so turning to the back camera showed
+  // a sign behind you backwards on screen while the recording came out right.
+  const [facingUser, setFacingUser] = useState (true)
+  // Where a tap focused, drawn briefly as a ring. Only set when the camera
+  // actually accepted the focus, which an iPhone never does from a website.
+  const [focusRing, setFocusRing] = useState<{ x: number; y: number; key: number } | null> (null)
   const zoomRange = useRef<{ min: number; max: number; step: number } | null> (null)
 
   const recording = state === 'recording'
@@ -384,10 +392,24 @@ export function Thread ({
     try {
       const stream = await recorderRef.current!.flip ()
       if (previewRef.current) previewRef.current.srcObject = stream
+      setFacingUser (recorderRef.current!.facingUser)
     } catch (e) {
       setError (describe (e))
     }
   }, [])
+
+  const tapToFocus = useCallback (async (e: React.MouseEvent<HTMLDivElement>) => {
+    const rec = recorderRef.current
+    const video = previewRef.current
+    if (!rec || !video || !rec.canFocus ()) return
+    const mirrored = selfie === 'mirror' && rec.facingUser
+    const point = pointInPicture (e, video, mirrored)
+    if (!point) return
+    if (await rec.focusAt (point.x, point.y)) {
+      const box = e.currentTarget.getBoundingClientRect ()
+      setFocusRing ({ x: e.clientX - box.left, y: e.clientY - box.top, key: Date.now () })
+    }
+  }, [selfie])
 
   const say = useCallback (async (e: React.FormEvent) => {
     e.preventDefault ()
@@ -669,36 +691,64 @@ export function Thread ({
               onChange={(e) => setNote (e.target.value)}
             />
             {note.trim () ? (
-              <button className="btn btn-primary" type="submit" disabled={busy}>Send</button>
+              <button className="round-btn" type="submit" disabled={busy} aria-label="Send">
+                <Icon name="send" />
+              </button>
             ) : (
               <button
-                className="btn btn-primary"
+                className="round-btn"
                 type="button"
+                aria-label="Open the camera"
                 onClick={() => { setMode ('video'); setCameraOpen (true) }}
               >
-                Camera
+                <Icon name="camera" />
               </button>
             )}
           </form>
         )}
-
-        <p className="capture-prompt">
-          <button className="link-btn" onClick={onBack}>All conversations</button>
-        </p>
       </main>
     )
   }
 
   return (
     <main className="stage screen">
-      <div className="viewfinder">
+      <div
+        className="viewfinder"
+        onClick={(e) => {
+          // Only on the live picture: not while a message is playing over it, or
+          // a take is waiting to be sent.
+          if (active === null && !pendingSend) void tapToFocus (e)
+        }}
+      >
         <video
           ref={previewRef}
           className="vf-layer vf-preview"
           playsInline muted autoPlay
           data-hidden={active !== null}
-          data-mirror={selfie === 'mirror'}
+          data-mirror={selfie === 'mirror' && facingUser}
         />
+
+        {focusRing && (
+          <span
+            key={focusRing.key}
+            className="focus-ring"
+            style={{ left: focusRing.x, top: focusRing.y }}
+            onAnimationEnd={() => setFocusRing (null)}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* In chat layout the camera is a layer over the conversation, so it
+            needs its own way out, where the word Back used to sit at the bottom. */}
+        {layout === 'chat' && !recording && !pendingSend && (
+          <button
+            className="icon-btn vf-close"
+            onClick={(e) => { e.stopPropagation (); setCameraOpen (false) }}
+            aria-label="Close the camera"
+          >
+            <Icon name="close" />
+          </button>
+        )}
 
         {activeMessage?.kind === 'video' && urls[activeMessage.id] && (
           <video
@@ -891,23 +941,22 @@ export function Thread ({
       <div className="deck">
         {pendingSend ? (
           <div className="capture-controls">
-            <button className="btn btn-quiet" onClick={() => void discardPending ()} disabled={busy}>
-              Discard
+            {/* One way to throw a take away. There used to be Discard and Again
+                beside each other, and both did exactly this: two words for one
+                action is the kind of thing that makes a screen feel unfinished.
+                Deleting it leaves the camera ready for another go. */}
+            <button className="cam-ctrl cam-ctrl-danger" onClick={() => void discardPending ()} disabled={busy}>
+              <Icon name="trash" />
+              <span>Delete</span>
             </button>
             <button className="btn btn-primary send-big" onClick={() => void sendPending ()} disabled={busy}>
               {busy ? 'Sending' : 'Send'}
             </button>
-            <button
-              className="btn btn-quiet"
-              onClick={async () => { await discardPending () }}
-              disabled={busy}
-            >
-              Again
-            </button>
+            <span aria-hidden="true" />
           </div>
         ) : gone || closed ? (
-          <button className="btn btn-quiet btn-wide" onClick={onBack}>
-            All conversations
+          <button className="btn btn-secondary btn-wide" onClick={onBack}>
+            Back to conversations
           </button>
         ) : mode === 'note' ? (
           <form className="composer" onSubmit={say}>
@@ -924,12 +973,13 @@ export function Thread ({
         ) : (
           <div className="capture-controls">
             <button
-              className="btn btn-quiet"
+              className="cam-ctrl"
               onClick={() => setShowFilters (!showFilters)}
               disabled={recording || mode === 'voice'}
               aria-pressed={showFilters}
             >
-              {filter === 'none' ? 'Look' : FILTERS[filter].label}
+              <Icon name="look" />
+              <span>{filter === 'none' ? 'Look' : FILTERS[filter].label}</span>
             </button>
             <RecordButton
               mode={shutter}
@@ -946,35 +996,14 @@ export function Thread ({
                 void recorderRef.current?.setZoom (next)
               } : undefined}
             />
-            <button className="btn btn-quiet" onClick={flip} disabled={recording || mode === 'voice'}>
-              Flip
+            <button className="cam-ctrl" onClick={flip} disabled={recording || mode === 'voice'}>
+              <Icon name="flip" />
+              <span>Flip</span>
             </button>
           </div>
         )}
       </div>
 
-      <p className="capture-prompt">
-        {/* In chat view the camera is a layer over the conversation, so leaving
-            it should return there rather than all the way out to the list. */}
-        <button
-          className="link-btn"
-          onClick={() => {
-            if (layout === 'chat') { void discardPending (); setCameraOpen (false) }
-            else onBack ()
-          }}
-        >
-          {layout === 'chat' ? 'Back' : 'All conversations'}
-        </button>
-        {/* The shutter hint is about a shutter. While something is waiting on a
-            decision there is no shutter, and telling someone how to record is
-            noise beside the question actually being asked. */}
-        {!pendingSend && (
-          <>
-            <span className="dot" aria-hidden="true">·</span>
-            {hint (mode, shutter)}
-          </>
-        )}
-      </p>
 
       <input
         ref={fileRef}
@@ -992,14 +1021,6 @@ export function Thread ({
   )
 }
 
-function hint (mode: CaptureMode, shutter: ShutterMode): string {
-  if (mode === 'note') return 'Type anything, emoji included. All of them, free.'
-  if (mode === 'voice') return 'Hold to talk. No picture, and far smaller to keep.'
-  if (mode === 'photo') return 'Pick a photo or video already on your phone.'
-  return shutter === 'hold'
-    ? 'Tap for a photo, hold to talk, slide up to zoom'
-    : 'Tap to start, tap again to finish'
-}
 
 /**
  * True when a note is nothing but emoji.

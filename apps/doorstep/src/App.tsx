@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { CaptureScreen, type ShutterMode } from '@doorstep/ui'
+import { CaptureScreen, Icon, type ShutterMode } from '@doorstep/ui'
 import {
   AUTO_ARCHIVE_CHOICES, RETENTION_CHOICES, avatarUrl, changeEmail, retentionLabel,
   deleteAccount, exportEverything, formatBytes, formatDuration,
@@ -289,30 +289,29 @@ function Shell ({ recovered }: { recovered: boolean }) {
   return (
     <div className="app">
       <Bar
-        title={view.name === 'thread' ? view.who : 'Doorstep'}
+        title={view.name === 'thread' ? view.who : view.name === 'settings' ? 'Settings' : 'Doorstep'}
         greeting={view.name === 'threads' ? greeting : null}
-        action={
+        // A conversation and Settings both lead back to the list, and say so
+        // with the arrow every app uses, where the way out used to be a line of
+        // underlined text at the bottom of the screen.
+        onBack={view.name === 'thread' || view.name === 'settings'
+          ? () => setView ({ name: 'threads' })
+          : undefined}
+        action={view.name === 'settings' ? undefined : (
           <>
             {/* Only where it leads somewhere new. Once quick record is on, the
                 camera is a place you can be sent back to, so there has to be a
                 way back to it without closing the app and opening it again. */}
             {settings.quickRecord && view.name === 'threads' && (
-              <button
-                className="btn btn-quiet bar-action"
-                onClick={() => setView ({ name: 'quick' })}
-                aria-label="Camera"
-              >
-                Camera
+              <button className="icon-btn" onClick={() => setView ({ name: 'quick' })} aria-label="Camera">
+                <Icon name="camera" />
               </button>
             )}
-            <button
-              className="btn btn-quiet bar-action"
-              onClick={() => setView (view.name === 'settings' ? { name: 'threads' } : { name: 'settings' })}
-            >
-              {view.name === 'settings' ? 'Done' : 'Settings'}
+            <button className="icon-btn" onClick={() => setView ({ name: 'settings' })} aria-label="Settings">
+              <Icon name="settings" />
             </button>
           </>
-        }
+        )}
       />
 
       {view.name === 'threads' && (
@@ -557,15 +556,26 @@ function Pager ({ left, right }: { left: React.ReactNode; right: React.ReactNode
 }
 
 function Bar ({
-  title, greeting, action,
-}: { title: string; greeting?: string | null; action?: React.ReactNode }) {
+  title, greeting, action, onBack,
+}: {
+  title: string
+  greeting?: string | null
+  action?: React.ReactNode
+  /** Shown as a back arrow on the left, where there is somewhere to go back to. */
+  onBack?: () => void
+}) {
   return (
     <header className="bar">
+      {onBack && (
+        <button className="icon-btn bar-back" onClick={onBack} aria-label="Back">
+          <Icon name="back" />
+        </button>
+      )}
       <div className="bar-title">
         <h1>{title}</h1>
         {greeting && <p className="greeting">{greeting}</p>}
       </div>
-      {action}
+      {action && <div className="bar-actions">{action}</div>}
     </header>
   )
 }
@@ -1161,8 +1171,8 @@ function PushNudge () {
           aria-expanded={false}
           aria-label="Notifications are off. Tap to find out more."
         >
-          <BlockedIcon />
-          Notifications
+          <Icon name="bell-off" size={16} />
+          Notifications off
         </button>
       </div>
     )
@@ -1171,7 +1181,7 @@ function PushNudge () {
   return (
     <div className="nudge">
       <div className="nudge-head">
-        <span className="nudge-title"><BlockedIcon /> Notifications are off</span>
+        <span className="nudge-title"><Icon name="bell-off" size={16} /> Notifications are off</span>
         <button className="link-btn" onClick={() => setOpen (false)} aria-label="Collapse">
           Close
         </button>
@@ -1203,16 +1213,6 @@ function PushNudge () {
   )
 }
 
-/** A circle with a line through it, drawn rather than an emoji so it takes the
- *  colour it is given and stays crisp at any size. */
-function BlockedIcon () {
-  return (
-    <svg className="blocked" viewBox="0 0 16 16" aria-hidden="true">
-      <circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" strokeWidth="1.6" />
-      <line x1="3.7" y1="12.3" x2="12.3" y2="3.7" stroke="currentColor" strokeWidth="1.6" />
-    </svg>
-  )
-}
 
 /**
  * Switching between people on one phone.

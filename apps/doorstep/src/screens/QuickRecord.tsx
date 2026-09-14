@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ModeBar, RecordButton, type CaptureMode, type ShutterMode } from '@doorstep/ui'
+import { Icon, ModeBar, RecordButton, type CaptureMode, type ShutterMode } from '@doorstep/ui'
 import {
   MAX_DURATION_MS, VideoRecorder, avatarUrl, formatDuration, listArchived,
   listBlocked, listThreads, sendCapture, sendFailureMessage, sendableThreads,
@@ -8,6 +8,7 @@ import {
 } from '@doorstep/core'
 import { db } from '../db'
 import { enqueue, markFailed, permanent, remove, type Pending } from '../outbox'
+import { pointInPicture } from '../focus'
 
 /**
  * Open the app, camera already on, choose who it goes to afterwards.
@@ -50,6 +51,8 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
   // Whichever comes first of the time cap and the upload size limit.
   const [limit, setLimit] = useState (MAX_DURATION_MS)
   const [error, setError] = useState<string | null> (null)
+  const [facingUser, setFacingUser] = useState (true)
+  const [focusRing, setFocusRing] = useState<{ x: number; y: number; key: number } | null> (null)
   const [capture, setCapture] = useState<Capture | null> (null)
   const [reviewUrl, setReviewUrl] = useState<string | null> (null)
   const [rows, setRows] = useState<ThreadSummary[] | null> (null)
@@ -176,10 +179,26 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
     try {
       const stream = await recorderRef.current!.flip ()
       if (previewRef.current) previewRef.current.srcObject = stream
+      setFacingUser (recorderRef.current!.facingUser)
     } catch (e) {
       setError (describe (e))
     }
   }, [])
+
+  // Focus where the picture was tapped, on a camera that allows it. Chrome on
+  // Android does on most phones; Safari on an iPhone never does from a website,
+  // and then nothing is drawn rather than a ring that did not focus anything.
+  const tapToFocus = useCallback (async (e: React.MouseEvent<HTMLDivElement>) => {
+    const rec = recorderRef.current
+    const video = previewRef.current
+    if (!rec || !video || !rec.canFocus ()) return
+    const point = pointInPicture (e, video, selfie === 'mirror' && rec.facingUser)
+    if (!point) return
+    if (await rec.focusAt (point.x, point.y)) {
+      const box = e.currentTarget.getBoundingClientRect ()
+      setFocusRing ({ x: e.clientX - box.left, y: e.clientY - box.top, key: Date.now () })
+    }
+  }, [selfie])
 
   const discard = useCallback (() => {
     setCapture (null)
@@ -233,7 +252,10 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
 
   return (
     <main className="screen quick">
-      <div className="capture-stage quick-stage">
+      <div
+        className="capture-stage quick-stage"
+        onClick={(e) => { if (!picking && mode !== 'voice') void tapToFocus (e) }}
+      >
         <video
           ref={previewRef}
           className="capture-video capture-preview"
@@ -241,7 +263,17 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
           muted
           autoPlay
           data-hidden={picking || mode === 'voice'}
+          data-mirror={selfie === 'mirror' && facingUser}
         />
+        {focusRing && (
+          <span
+            key={focusRing.key}
+            className="focus-ring"
+            style={{ left: focusRing.x, top: focusRing.y }}
+            onAnimationEnd={() => setFocusRing (null)}
+            aria-hidden="true"
+          />
+        )}
         {mode === 'voice' && !picking && (
           <div className="quick-voice"><p className="muted">Voice only</p></div>
         )}
@@ -289,8 +321,9 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
       ) : (
         <>
           <div className="capture-controls">
-            <button className="btn btn-quiet" onClick={onMessages} disabled={recording}>
-              Messages
+            <button className="cam-ctrl" onClick={onMessages} disabled={recording}>
+              <Icon name="chat" />
+              <span>Messages</span>
             </button>
             <RecordButton
               mode={shutter}
@@ -305,8 +338,9 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
                 void recorderRef.current?.setZoom (r.min + (r.max - r.min) * f)
               } : undefined}
             />
-            <button className="btn btn-quiet" onClick={flip} disabled={recording || mode === 'voice'}>
-              Flip
+            <button className="cam-ctrl" onClick={flip} disabled={recording || mode === 'voice'}>
+              <Icon name="flip" />
+              <span>Flip</span>
             </button>
           </div>
 
@@ -360,9 +394,20 @@ function RecipientPicker ({
     <div className="quick-pick">
       <div className="quick-pick-head">
         <h2>{sent.length ? 'Send it to somebody else?' : 'Who is this for?'}</h2>
-        <button className="btn btn-quiet" onClick={onDiscard}>
-          {sent.length ? 'Done' : 'Throw away'}
-        </button>
+        {/* Delete as a real button, in one word, where it was the words Throw
+            away set as text. Once it has gone to somebody there is nothing to
+            delete, and the same place says Done. */}
+        {sent.length ? (
+          <button className="btn btn-secondary btn-compact" onClick={onDiscard}>
+            <Icon name="check" size={18} />
+            Done
+          </button>
+        ) : (
+          <button className="btn btn-secondary btn-compact btn-danger" onClick={onDiscard}>
+            <Icon name="trash" size={18} />
+            Delete
+          </button>
+        )}
       </div>
 
       {sent.length > 0 && (

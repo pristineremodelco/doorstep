@@ -348,6 +348,47 @@ export class VideoRecorder {
    * asked for rather than assumed. Where there is none, this returns null and
    * the gesture is simply not wired up.
    */
+  /**
+   * Whether this camera will focus on a chosen point.
+   *
+   * Chrome on Android exposes it on phones whose camera supports it. Safari on
+   * an iPhone gives a website no focus control at all, so there the answer is
+   * no and nothing on screen pretends otherwise.
+   */
+  canFocus (): boolean {
+    const track = this.stream?.getVideoTracks ()[0]
+    const caps = (track?.getCapabilities?.() ?? {}) as { focusMode?: string[] }
+    const modes = caps.focusMode ?? []
+    return modes.includes ('single-shot') || modes.includes ('continuous')
+  }
+
+  /**
+   * Focuses on a point, given as fractions of the picture across and down.
+   *
+   * Returns whether the camera accepted it, so the ring is only drawn for a
+   * focus that happened.
+   */
+  async focusAt (x: number, y: number): Promise<boolean> {
+    const track = this.stream?.getVideoTracks ()[0]
+    if (!track || !this.canFocus ()) return false
+    const caps = (track.getCapabilities?.() ?? {}) as { focusMode?: string[] }
+    const mode = caps.focusMode?.includes ('single-shot') ? 'single-shot' : 'continuous'
+    const clamp = (n: number) => Math.min (1, Math.max (0, n))
+    try {
+      await track.applyConstraints ({
+        advanced: [{ pointsOfInterest: [{ x: clamp (x), y: clamp (y) }], focusMode: mode } as MediaTrackConstraintSet],
+      })
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /** Which way the camera faces, so a tap on a mirrored preview can be flipped. */
+  get facingUser (): boolean {
+    return (this.opts.facing ?? 'user') === 'user'
+  }
+
   zoomRange (): { min: number; max: number; step: number } | null {
     const track = this.stream?.getVideoTracks ()[0]
     const caps = (track?.getCapabilities?.() ?? {}) as

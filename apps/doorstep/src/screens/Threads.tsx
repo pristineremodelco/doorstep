@@ -3,7 +3,7 @@ import {
   activityBand, archiveThread, avatarUrl, createInvite, isHereNow, isMuted,
   listArchived, listBlocked, listThreads, type ThreadSort, type ThreadSummary,
 } from '@doorstep/core'
-import { DoorLight } from '@doorstep/ui'
+import { DoorLight, Icon } from '@doorstep/ui'
 import { db } from '../db'
 import { PersonSheet } from './PersonSheet'
 
@@ -184,13 +184,20 @@ export function Threads ({ onOpen }: Props) {
 
       {(rows?.length ?? 0) > 0 && (
         <>
-          <input
-            className="input search"
-            type="search"
-            placeholder="Search conversations"
-            value={query}
-            onChange={(e) => setQuery (e.target.value)}
-          />
+          {/* Search and sort share one slim row. They took two tall rows before,
+              a third of the screen, ahead of a single conversation. */}
+          <div className="list-tools">
+            <label className="search-field">
+              <Icon name="search" size={18} />
+              <input
+                className="search-input"
+                type="search"
+                placeholder="Search"
+                aria-label="Search conversations"
+                value={query}
+                onChange={(e) => setQuery (e.target.value)}
+              />
+            </label>
           {/* One button showing the current choice, with the alternatives on a
               layer above the list. A row of options would take space from the
               conversations and shift them down every time it appeared. */}
@@ -202,7 +209,7 @@ export function Threads ({ onOpen }: Props) {
               onClick={() => setSortOpen (!sortOpen)}
             >
               {SORT_LABELS[sort]}
-              <span className="caret" aria-hidden="true">▾</span>
+              <Icon name="chevron-down" size={16} />
             </button>
 
             {sortOpen && (
@@ -229,6 +236,7 @@ export function Threads ({ onOpen }: Props) {
                 </ul>
               </>
             )}
+          </div>
           </div>
         </>
       )}
@@ -329,8 +337,12 @@ export function Threads ({ onOpen }: Props) {
         </button>
       )}
 
-      <button className="btn btn-primary btn-wide" onClick={invite} disabled={inviting}>
-        {inviting ? 'Making a link' : 'Invite someone'}
+      {/* Invite as a button that floats in the corner, the place a messaging app
+          keeps its one creating action. It was a full width bar, the heaviest
+          thing on the screen, weighing more than the conversations themselves. */}
+      <button className="fab" onClick={invite} disabled={inviting}>
+        <Icon name="plus" size={20} />
+        {inviting ? 'Making a link' : 'Invite'}
       </button>
 
       {person && (

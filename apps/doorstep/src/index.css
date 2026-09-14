@@ -237,7 +237,11 @@ body {
 
 /* The preview is mirrored because that is how people expect to see themselves.
    The recording is not: text held up to the lens must read correctly. */
-.capture-preview { transform: scaleX(-1); }
+/* Mirrored only when told to: the selfie camera with the mirror setting on. This
+   was unconditional, so the back camera showed the world backwards and the "as
+   others see you" setting was ignored in the preview while it applied to the
+   recording, the one place the two must agree. */
+.capture-preview[data-mirror="true"] { transform: scaleX(-1); }
 
 .capture-review {
   background: #000;
@@ -1254,7 +1258,9 @@ body {
 }
 
 /* Collapsed: a marker in the corner rather than a panel across the screen. */
-.nudge-bar { display: flex; justify-content: flex-end; }
+/* Inset from the edge, where it used to sit flush against the side of the
+   screen and look cut off. */
+.nudge-bar { display: flex; justify-content: flex-end; padding: var(--s-2) var(--s-3) 0; }
 
 .nudge-chip {
   font: inherit;
@@ -1265,18 +1271,20 @@ body {
   font-weight: 550;
   /* 34px tall, sat inside a row with room around it. Small on purpose: it is a
      notice, not a call to action, and the conversations matter more. */
-  padding: 8px var(--s-3);
-  border: 1px solid rgba(229, 84, 66, 0.4);
+  padding: 7px var(--s-3);
+  border: 1px solid var(--line);
   border-radius: 999px;
-  background: rgba(229, 84, 66, 0.12);
-  color: var(--live-solid);
+  /* Neutral. Notifications being off is a choice, not a fault, and red made a
+     preference read as an error. */
+  background: var(--raised);
+  color: var(--ink-soft);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   animation: rise var(--settle) both;
   transition: background var(--quick);
 }
 
-.nudge-chip:active { background: rgba(229, 84, 66, 0.2); }
+.nudge-chip:active { background: var(--raised-high); }
 
 .blocked { width: 14px; height: 14px; flex: 0 0 auto; }
 
@@ -1668,7 +1676,8 @@ p[data-warn="true"] {
 
 .fold-caret {
   flex: 0 0 auto;
-  font-size: 11px;
+  display: grid;
+  place-items: center;
   color: var(--ink-quiet);
   transition: transform var(--quick);
 }
@@ -1699,7 +1708,12 @@ p[data-warn="true"] {
   -webkit-tap-highlight-color: transparent;
 }
 
+.fold-pin { display: grid; place-items: center; }
 .fold-pin[aria-pressed="true"] { color: var(--warm); }
+/* A pinned section fills its pin, so the state reads at a glance rather than by
+   comparing an outline against a slightly different outline. */
+.fold-pin .icon-fill { fill: none; transition: fill var(--quick); }
+.fold-pin[aria-pressed="true"] .icon-fill { fill: currentColor; }
 
 .fold-body {
   display: flex;
@@ -2712,3 +2726,221 @@ p[data-warn="true"] {
 .code-row { display: flex; gap: var(--s-2); align-items: stretch; }
 .code-row .code-input { flex: 1; min-width: 0; }
 .code-paste { flex: 0 0 auto; padding-left: var(--s-4); padding-right: var(--s-4); }
+
+/* ------------------------------------------------------------ icon buttons --- */
+
+/* A tappable symbol. Forty four points of target, the size a thumb can land on
+   without aiming, around a twenty four point icon. */
+.icon { display: block; flex: 0 0 auto; }
+
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--quick), transform var(--quick), opacity var(--quick);
+}
+.icon-btn:active:not(:disabled) { background: var(--raised); transform: scale(0.92); }
+.icon-btn:disabled { opacity: 0.35; cursor: default; }
+.icon-btn:focus-visible { outline: 2px solid var(--warm); outline-offset: 2px; }
+
+.bar-actions { margin-left: auto; display: flex; align-items: center; gap: 2px; margin-right: calc(var(--s-2) * -1); }
+.bar-back { margin-left: calc(var(--s-2) * -1); }
+
+/* A filled round action, the size of a thumb: send, or open the camera, at the
+   end of the message box. */
+.round-btn {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--warm);
+  color: var(--on-warm);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--quick), background var(--quick), opacity var(--quick);
+}
+.round-btn:active:not(:disabled) { transform: scale(0.92); background: var(--warm-deep); }
+.round-btn:disabled { opacity: 0.4; cursor: default; }
+.round-btn:focus-visible { outline: 2px solid var(--warm); outline-offset: 3px; }
+.round-btn .icon { stroke-width: 2.2; }
+
+/* Camera controls either side of the shutter: a symbol with a small word under
+   it, the way a phone's own camera labels its buttons, so they read as buttons
+   and still say what they do. */
+.cam-ctrl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 64px;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 560;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--quick), transform var(--quick), opacity var(--quick);
+}
+.cam-ctrl:active:not(:disabled) { background: var(--raised); transform: scale(0.95); }
+.cam-ctrl:disabled { opacity: 0.35; cursor: default; }
+.cam-ctrl[aria-pressed="true"] { color: var(--warm); }
+.cam-ctrl:focus-visible { outline: 2px solid var(--warm); outline-offset: 2px; }
+.cam-ctrl span { color: var(--ink-soft); }
+.cam-ctrl[aria-pressed="true"] span { color: var(--warm); }
+
+/* Delete, in the one colour that means it, but as a button rather than a warning
+   shouting from the screen. */
+.cam-ctrl-danger { color: var(--live-solid); }
+.cam-ctrl-danger span { color: var(--live-solid); }
+
+.vf-close {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 4;
+  background: rgba(0, 0, 0, 0.42);
+  color: #fff;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.vf-close:active:not(:disabled) { background: rgba(0, 0, 0, 0.6); }
+
+/* Where a tap focused. A square that settles in, the shape phone cameras use, so
+   it is recognised without being explained. */
+.focus-ring {
+  position: absolute;
+  z-index: 3;
+  width: 72px;
+  height: 72px;
+  margin: -36px 0 0 -36px;
+  border: 1.5px solid var(--warm);
+  border-radius: 12px;
+  pointer-events: none;
+  animation: focus-settle 900ms ease-out both;
+}
+
+@keyframes focus-settle {
+  0%   { transform: scale(1.35); opacity: 0; }
+  20%  { transform: scale(1); opacity: 1; }
+  75%  { opacity: 1; }
+  100% { transform: scale(0.96); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focus-ring { animation-duration: 900ms; animation-name: fade; }
+}
+
+/* A button sized to sit in a heading row rather than span the screen. */
+.btn-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 15px;
+}
+
+/* Destructive, said in colour on an otherwise ordinary button. */
+.btn-danger { color: var(--live-solid); }
+.btn-danger .icon { color: var(--live-solid); }
+
+[data-invisible="true"] { visibility: hidden; }
+
+/* --------------------------------------------------------- the list's tools --- */
+
+.list { position: relative; }
+
+.list-tools { display: flex; align-items: center; gap: var(--s-2); }
+.list-tools .sortbar { padding-bottom: 0; flex: 0 0 auto; position: relative; }
+
+.search-field {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 var(--s-3);
+  border-radius: 12px;
+  background: var(--raised);
+  color: var(--ink-quiet);
+  cursor: text;
+}
+.search-field:focus-within { box-shadow: 0 0 0 2px var(--warm); color: var(--ink-soft); }
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  /* 16px keeps iOS from zooming the page when the field takes focus. */
+  font-size: 16px;
+  outline: none;
+  -webkit-appearance: none;
+}
+.search-input::placeholder { color: var(--ink-quiet); }
+.search-input::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+/* Matched to the search field beside it: same height, same fill, same corner,
+   no outline, so the two read as one row of tools rather than a field and a
+   stray pill. */
+.list-tools .sort-trigger {
+  gap: 4px;
+  height: 42px;
+  padding: 0 12px 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--raised);
+}
+.list-tools .sort-trigger .icon { color: var(--ink-quiet); }
+
+.fab {
+  position: absolute;
+  right: var(--s-4);
+  bottom: calc(var(--s-4) + env(safe-area-inset-bottom));
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 22px 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--warm);
+  color: var(--on-warm);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 650;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.38), 0 2px 6px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--quick), background var(--quick);
+}
+.fab:active:not(:disabled) { transform: scale(0.96); background: var(--warm-deep); }
+.fab:disabled { opacity: 0.7; }
+.fab .icon { stroke-width: 2.4; }
+
+/* Room at the end of the list, so the last conversation can scroll clear of the
+   floating button instead of sitting underneath it. */
+.threads { padding-bottom: 84px; }
