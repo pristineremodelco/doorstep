@@ -24,6 +24,16 @@
 export const MAX_DURATION_MS = 80 * 1000
 
 /**
+ * Longest a voice message may run.
+ *
+ * The eighty second limit exists because of video file size, and voice has no
+ * such problem: at 128 kbps five minutes is under five megabytes. When the video
+ * limit was cut, voice was cut with it by accident, since both read the same
+ * number. It keeps its own.
+ */
+export const VOICE_MAX_DURATION_MS = 5 * 60 * 1000
+
+/**
  * Largest a recording may grow before it is stopped, in bytes.
  *
  * The real limit is not the clock, it is the upload. Supabase refuses any
@@ -445,7 +455,9 @@ export class VideoRecorder {
     this.recorder = new MediaRecorder (source, this.voice
       ? { mimeType: type, audioBitsPerSecond: 128_000 }
       : { mimeType, videoBitsPerSecond: this.videoBitrate (), audioBitsPerSecond: 128_000 })
-    const timeCap = this.opts.maxDurationMs ?? MAX_DURATION_MS
+    const timeCap = this.voice
+      ? VOICE_MAX_DURATION_MS
+      : this.opts.maxDurationMs ?? MAX_DURATION_MS
     const byteCap = this.opts.maxBytes ?? MAX_UPLOAD_BYTES
     const requested = this.voice ? 128_000 : this.videoBitrate () + 128_000
     // The first guess, before a single chunk exists, from what was asked for.

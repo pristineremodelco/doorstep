@@ -8,3 +8,5 @@ supabase/.temp
 apps/doorstep/public/__seed.js
 .hook-secret.txt
 .supabase-service-key.txt
+.e2e-core.mjs
+.core-data.mjs

@@ -47,6 +47,51 @@ export function setRemembering (yes: boolean): void {
 }
 
 /**
+ * Changes the choice for a session that already exists, and moves it to match.
+ *
+ * Setting the flag alone decides only where the next save goes, which is up to
+ * an hour away when the token next refreshes. Until then a person who switched
+ * remembering off would still be signed in after closing the app, and one who
+ * switched it on would still be signed out. So the stored session is moved
+ * across straight away.
+ *
+ * Switching it off also takes this account out of the switcher. That list holds
+ * a refresh token, and leaving one behind would keep a way back in on a phone
+ * the person has just said is not to remember them.
+ */
+export function rememberThisDevice (
+  yes: boolean,
+  current?: { userId: string; email: string; refreshToken: string }
+): void {
+  setRemembering (yes)
+  try {
+    const from = yes ? sessionStorage : localStorage
+    const to = yes ? localStorage : sessionStorage
+    const keys: string[] = []
+    for (let i = 0; i < from.length; i++) {
+      const k = from.key (i)
+      // Only Supabase's own keys: this app's other settings live in
+      // localStorage on purpose and must stay there either way.
+      if (k && k.startsWith ('sb-')) keys.push (k)
+    }
+    for (const k of keys) {
+      const v = from.getItem (k)
+      if (v === null) continue
+      to.setItem (k, v)
+      from.removeItem (k)
+    }
+  } catch {
+    // Storage refused: the choice is still recorded and applies at the next save.
+  }
+  if (!current) return
+  if (yes) {
+    remember ({ ...current, savedAt: new Date ().toISOString () })
+  } else {
+    forget (current.userId)
+  }
+}
+
+/**
  * Where Supabase keeps the session.
  *
  * localStorage when the person said to remember them, sessionStorage when they

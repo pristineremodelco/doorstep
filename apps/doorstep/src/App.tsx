@@ -14,7 +14,7 @@ import {
   disablePush, enablePush, installed, isIOS, pushState, registerWorker,
   type PushState,
 } from './push'
-import { forget, forgetAll, roster, setRemembering } from './accounts'
+import { forget, forgetAll, rememberThisDevice, remembering, roster, setRemembering } from './accounts'
 import { Field, SettingsSection } from './SettingsSection'
 import { clearRecorded, errorDigest, recorded } from './errors'
 import { applyUpdate, checkForUpdate, dismissUpdate } from './updates'
@@ -148,6 +148,9 @@ type View =
 function Shell ({ recovered }: { recovered: boolean }) {
   const { session, profile, loading, refreshProfile } = useSession ()
   const [route, go] = useRoute ()
+  // Answered here rather than read back from the account, so the prompt goes
+  // the moment it is answered instead of waiting for the session to refresh.
+  const [pinAnswered, setPinAnswered] = useState (false)
   const [settings, setSettings] = useState<Settings> (loadSettings)
   // Read once, at mount. Turning the setting on should not yank the camera up
   // under the person changing it; it applies the next time the app is opened,
@@ -247,6 +250,19 @@ function Shell ({ recovered }: { recovered: boolean }) {
     )
   }
 
+  // Asked once per account, after the name: whether to add a PIN. Kept on the
+  // account rather than the device, so answering on a phone is not asked again
+  // on a laptop, and never shown to someone who already has one.
+  const meta = session.user.user_metadata ?? {}
+  if (profile && meta.has_secret !== true && meta.pin_prompted !== true && !pinAnswered) {
+    return (
+      <div className="app">
+        <Bar title="Doorstep" />
+        <PinSetup onDone={() => setPinAnswered (true)} />
+      </div>
+    )
+  }
+
   return (
     <div className="app">
       <Bar
@@ -339,6 +355,82 @@ function Shell ({ recovered }: { recovered: boolean }) {
  * which is a poor way to meet and easy never to fix: nothing in the app pointed
  * at the field, so there was no reason to know it existed.
  */
+/**
+ * The one-time offer of a PIN.
+ *
+ * Worded for what a PIN does here, which is not what people tend to assume. It
+ * is a second way in, not a lock: signing in with an emailed code still works
+ * with one set. What it buys is not needing an email at all, which is the whole
+ * difference on an iPhone home screen app, where an email link opens the wrong
+ * window. So the offer says that, rather than promising security it does not
+ * add.
+ *
+ * Skipping is a real button, as easy to reach as setting one.
+ */
+function PinSetup ({ onDone }: { onDone: () => void }) {
+  const [pin, setPin] = useState ('')
+  const [again, setAgain] = useState ('')
+  const [busy, setBusy] = useState (false)
+  const [error, setError] = useState<string | null> (null)
+
+  const finish = async (withPin: boolean) => {
+    if (!db || busy) return
+    if (withPin && pin !== again) { setError ('Those two do not match.'); return }
+    setBusy (true)
+    setError (null)
+    try {
+      if (withPin) await setPassword (db, pin)
+      // Both flags in one write, so a PIN is never recorded without the prompt
+      // being marked answered, or the other way round.
+      await db.auth.updateUser ({ data: withPin ? { has_secret: true, pin_prompted: true } : { pin_prompted: true } })
+      onDone ()
+    } catch (e) {
+      setError (e instanceof Error ? e.message : 'Could not save that.')
+      setBusy (false)
+    }
+  }
+
+  const ready = pin.length >= MIN_SECRET_LENGTH && again.length >= MIN_SECRET_LENGTH
+
+  return (
+    <main className="screen centered">
+      <form className="stack" onSubmit={(e) => { e.preventDefault (); void finish (true) }}>
+        <h2>Add a PIN?</h2>
+        <p className="muted">
+          Then you can sign in with your email and PIN, with no email to wait for.
+        </p>
+        <input
+          className="input code-input"
+          type="password"
+          inputMode="numeric"
+          autoComplete="new-password"
+          placeholder={`At least ${MIN_SECRET_LENGTH} digits`}
+          value={pin}
+          onChange={(e) => { setPin (e.target.value.replace (/\D/g, '')); setError (null) }}
+          autoFocus
+        />
+        <input
+          className="input code-input"
+          type="password"
+          inputMode="numeric"
+          autoComplete="new-password"
+          placeholder="Type it again"
+          value={again}
+          onChange={(e) => { setAgain (e.target.value.replace (/\D/g, '')); setError (null) }}
+        />
+        <button className="btn btn-primary btn-wide" type="submit" disabled={busy || !ready}>
+          {busy ? 'Saving' : 'Set PIN'}
+        </button>
+        <button type="button" className="btn btn-secondary btn-wide" onClick={() => void finish (false)} disabled={busy}>
+          Skip
+        </button>
+        {error && <p className="capture-error">{error}</p>}
+        <p className="muted fine">You can add or change it any time in Settings.</p>
+      </form>
+    </main>
+  )
+}
+
 function NameSetup ({ onDone }: { onDone: () => Promise<void> }) {
   const [name, setName] = useState ('')
   const [busy, setBusy] = useState (false)
@@ -793,6 +885,7 @@ function SettingsScreen ({
       )}
 
       <SettingsSection id="accounts" title="Accounts on this device" summary={email}>
+        <StaySignedIn />
         {/* The way into the home screen app at any time, not only straight
             after an email link. */}
         {canOfferAppCode () && (
@@ -1352,11 +1445,11 @@ function SecretPanel () {
     <div className="theme-row">
       {has === false && !muted && !dismissed && (
         <div className="warn">
-          <p className="warn-title">You have no password set</p>
+          <p className="warn-title">Your email is your only way in</p>
           <p>
-            Anyone who can open your email can sign in as you, from any device,
-            without your phone. That is the whole of the security on this
-            account today.
+            Without a PIN, signing in always needs a code from your email. Anyone
+            who can open your email can sign in as you, with or without a PIN,
+            so keep that account secure.
           </p>
           <label className="checkline">
             <input
@@ -1778,6 +1871,42 @@ function AvatarPicker () {
  * screen, and in a tab the prompt never appears at all, so the state is named
  * rather than left as a button that silently does nothing.
  */
+/**
+ * Staying signed in, changeable after the fact.
+ *
+ * It was only ever asked on the sign-in screen, so somebody who missed the box
+ * had to sign out and back in just to change it. The switch moves the live
+ * session straight away rather than waiting for the next token refresh.
+ */
+function StaySignedIn () {
+  const { session } = useSession ()
+  const [on, setOn] = useState (remembering)
+  return (
+    <label className="checkline">
+      <input
+        type="checkbox"
+        checked={on}
+        onChange={(e) => {
+          const yes = e.target.checked
+          setOn (yes)
+          const u = session?.user
+          rememberThisDevice (yes, u?.email && session?.refresh_token
+            ? { userId: u.id, email: u.email, refreshToken: session.refresh_token }
+            : undefined)
+        }}
+      />
+      <span>
+        <span className="checkline-title">Stay signed in on this device</span>
+        <span className="choice-note">
+          {on
+            ? 'You stay signed in when you close Doorstep.'
+            : 'You are signed out when you close Doorstep.'}
+        </span>
+      </span>
+    </label>
+  )
+}
+
 function InstallFromSettings () {
   const [open, setOpen] = useState (false)
   return (

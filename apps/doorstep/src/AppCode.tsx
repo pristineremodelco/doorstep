@@ -66,19 +66,24 @@ export function AppCodeReveal ({ label = 'Get a code for the app' }: { label?: s
 
   return (
     <div className="app-code">
-      {/* In two groups of four, easier to hold in your head between two apps. */}
-      <p className="app-code-digits" aria-label={`Code ${code.split ('').join (' ')}`}>
+      {/* The code itself is the button: one tap copies it, ready to paste into
+          the app. Split in two groups of four so it can also be read and typed. */}
+      <button
+        type="button"
+        className="app-code-digits"
+        data-copied={copied}
+        onClick={() => void copy ()}
+        aria-label={`Code ${code.split ('').join (' ')}. Tap to copy.`}
+      >
         {code.replace (/(\d{4})(?=\d)/g, '$1 ')}
-      </p>
+        <span className="app-code-tap">{copied ? 'Copied' : 'Tap to copy'}</span>
+      </button>
       <ol className="app-code-steps">
         <li>Open Doorstep from your home screen</li>
         <li>Enter your email and tap <b>I already have a code</b></li>
-        <li>Type this code</li>
+        <li>Tap <b>Paste</b>, then <b>Come In</b></li>
       </ol>
-      <div className="app-code-actions">
-        <span className="muted fine">Works once, for 30 minutes.</span>
-        <button className="btn btn-quiet" onClick={() => void copy ()}>{copied ? 'Copied' : 'Copy'}</button>
-      </div>
+      <p className="muted fine">Works once, for 30 minutes.</p>
     </div>
   )
 }

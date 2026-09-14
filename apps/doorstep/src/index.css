@@ -382,6 +382,18 @@ body {
 .btn-quiet { background: transparent; color: var(--ink-soft); }
 .btn-quiet:active:not(:disabled) { background: var(--raised); }
 
+/* A real button that is not the main action. Quiet buttons render as bare text,
+   which is right for Back and Close but wrong for a choice somebody is meant to
+   see and pick, such as skipping a step: text reads as a caption, not as
+   something to press. Filled in the raised tone with a hairline edge. */
+.btn-secondary {
+  background: var(--raised);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-weight: 600;
+}
+.btn-secondary:active:not(:disabled) { background: var(--raised-high); }
+
 .btn-wide {
   width: 100%;
   padding: var(--s-4);
@@ -2655,23 +2667,48 @@ p[data-warn="true"] {
 .app-code { display: flex; flex-direction: column; gap: var(--s-3); }
 .app-code > .btn { align-self: flex-start; }
 
+/* The code is the button. Big enough to hit without looking, and it says what
+   a tap does, then that it worked. */
 .app-code-digits {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
   margin: 0;
-  padding: var(--s-3);
+  padding: var(--s-3) var(--s-3) var(--s-2);
+  border: 0;
   border-radius: var(--radius);
   background: var(--raised-high);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 34px;
   font-weight: 700;
   letter-spacing: 0.12em;
-  text-align: center;
   color: var(--ink);
-  user-select: all;
-  -webkit-user-select: all;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: box-shadow var(--quick), transform var(--quick);
 }
+.app-code-digits:active { transform: scale(0.98); }
+.app-code-digits:focus-visible { outline: 2px solid var(--warm); outline-offset: 2px; }
+.app-code-digits[data-copied="true"] { box-shadow: inset 0 0 0 2px var(--warm); }
+
+.app-code-tap {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-quiet);
+}
+.app-code-digits[data-copied="true"] .app-code-tap { color: var(--warm); }
 
 .app-code-steps { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; font-size: 15px; line-height: 1.4; }
 .app-code-steps li::marker { color: var(--warm); font-weight: 700; }
 .app-code-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
 
 .app-code-card .nudge-title { gap: var(--s-2); color: var(--ink); }
+
+/* The code field with its Paste button beside it. */
+.code-row { display: flex; gap: var(--s-2); align-items: stretch; }
+.code-row .code-input { flex: 1; min-width: 0; }
+.code-paste { flex: 0 0 auto; padding-left: var(--s-4); padding-right: var(--s-4); }

@@ -23,11 +23,21 @@ export interface DoorLightProps {
 const DIM = 0.34
 const LIT = 0.95
 
+/**
+ * The same door as the app icon, from the same measurements, so the light
+ * beside a name and the icon on the home screen are one drawing. Generated
+ * geometry lives in tools/icons.mjs; the paths here are its output. The
+ * window's arch shares the door's centre, so the gap around the glass is even,
+ * and the knob sits that same gap from the frame.
+ *
+ * The view box is cropped to the door rather than the icon's square, so it
+ * fills a small space the way the old drawing did.
+ */
 export function DoorLight ({ lit, size = 24, label }: DoorLightProps) {
   return (
     <svg
       className="doorlight"
-      viewBox="0 0 100 100"
+      viewBox="14.5 14.5 71 71"
       width={size}
       height={size}
       role="img"
@@ -36,19 +46,18 @@ export function DoorLight ({ lit, size = 24, label }: DoorLightProps) {
     >
       {/* Drawn before the frame so the stroke caps the glass cleanly. */}
       <path
-        d="M33 54 V43 A17 17 0 0 1 67 43 V54 Z"
+        d="M35 43 A15 15 0 0 1 65 43 V49.5 A2.5 2.5 0 0 1 62.5 52 H37.5 A2.5 2.5 0 0 1 35 49.5 Z"
         fill="currentColor"
         fillOpacity={lit ? LIT : DIM}
       />
       <path
-        d="M18 92 V40 A32 32 0 0 1 82 40 V92 Z"
+        d="M26 81 V43 A24 24 0 0 1 74 43 V81 Z"
         fill="none"
         stroke="currentColor"
-        strokeWidth="8"
-        strokeLinecap="round"
+        strokeWidth="7"
         strokeLinejoin="round"
       />
-      <circle cx="70" cy="72" r="5" fill="currentColor" fillOpacity={lit ? LIT : 0.55} />
+      <circle cx="61" cy="64.75" r="4" fill="currentColor" fillOpacity={lit ? LIT : 0.55} />
     </svg>
   )
 }

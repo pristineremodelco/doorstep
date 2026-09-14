@@ -99,6 +99,7 @@ export function SignIn () {
     // leads, and the email's button is named as the trap it is: it opens
     // Safari, signs the wrong window in, and spends the code on the way.
     const codeFirst = inApp || haveCode
+    const canPaste = typeof navigator !== 'undefined' && typeof navigator.clipboard?.readText === 'function'
     return (
       <main className="screen centered">
         <div className="stack">
@@ -135,17 +136,38 @@ export function SignIn () {
             }}
           >
             <label className="field-label" htmlFor="code">Code from the email</label>
-            <input
-              id="code"
-              className="input code-input"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              autoFocus={codeFirst}
-              placeholder="8 digits"
-              maxLength={12}
-              value={code}
-              onChange={(e) => setCode (e.target.value.replace (/\D/g, ''))}
-            />
+            <div className="code-row">
+              <input
+                id="code"
+                className="input code-input"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoFocus={codeFirst}
+                placeholder="8 digits"
+                maxLength={12}
+                value={code}
+                onChange={(e) => setCode (e.target.value.replace (/\D/g, ''))}
+              />
+              {/* One tap to bring across a code copied in Safari or Mail, rather
+                  than a long press and a menu. Anything that is not a digit is
+                  dropped, so a copied "1234 5678" arrives clean. */}
+              {canPaste && (
+                <button
+                  type="button"
+                  className="btn btn-quiet code-paste"
+                  onClick={async () => {
+                    try {
+                      const digits = (await navigator.clipboard.readText ()).replace (/\D/g, '').slice (0, 12)
+                      if (digits) { setCode (digits); setError (null) }
+                    } catch {
+                      // Refused or empty: the field still takes a long press paste.
+                    }
+                  }}
+                >
+                  Paste
+                </button>
+              )}
+            </div>
             <button
               className={codeFirst ? 'btn btn-primary btn-wide' : 'btn btn-quiet'}
               type="submit"
@@ -220,7 +242,7 @@ export function SignIn () {
           <input
             type="checkbox"
             checked={stay}
-            onChange={(e) => setStay (e.target.checked)}
+            onChange={(e) => { setStay (e.target.checked); setRemembering (e.target.checked) }}
           />
           <span>
             <span className="checkline-title">Stay signed in on this device</span>
