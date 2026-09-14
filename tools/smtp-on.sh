@@ -73,12 +73,15 @@ echo
 # a command of its own that prints y forever.
 supabase config push --project-ref "$PROJECT_REF" --yes
 
-cat <<'DONE'
-
-Pushed. Two things left:
-
-  1. Send yourself a sign-in link from the app and check it arrives. If nothing
-     turns up, the login was wrong; fix it and run this again. A bad login fails
-     at send time rather than quietly, so you will know within a minute.
-  2. git commit supabase/config.toml, so the repository matches the project.
-DONE
+# What is left depends on what is left. This used to print the same two steps
+# every time, including "commit" on runs where there was nothing to commit, which
+# is exactly the kind of instruction that sends somebody looking for a problem.
+echo
+echo "Pushed. Supabase now has the current email settings and design."
+echo
+echo "Check it: sign out of the app and sign in, and look at the email that arrives."
+if ! git diff --quiet HEAD -- supabase/config.toml supabase/templates/magic_link.html 2>/dev/null; then
+  echo
+  echo "Also save it, so the repository matches what Supabase has:"
+  echo "  git add supabase/config.toml supabase/templates/magic_link.html && git commit -m \"Update sign-in email\" && git push"
+fi
