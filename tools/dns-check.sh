@@ -26,6 +26,20 @@ echo
 ok () { printf '  \033[32m%s\033[0m %s\n' "yes" "$1"; }
 no () { printf '  \033[33m%s\033[0m %s\n' " no" "$1"; }
 
+echo "Delegated to Brevo (the NS-records setup)"
+ns=$($R NS "$SUB" || true)
+if [ -n "$ns" ]; then
+  ok "$SUB is handed to these nameservers:"
+  echo "$ns" | sed 's/^/       /'
+  echo "     With this in place Brevo writes everything below itself, once you"
+  echo "     press verify. The two checks after this can say no until then."
+else
+  no "no NS records on $SUB yet"
+  echo "     In Hostinger add two records, Type NS, Name doorstep, one for each"
+  echo "     nameserver Brevo shows you."
+fi
+
+echo
 echo "Brevo verification code"
 code=$($R TXT "$SUB" | grep -i "brevo" || true)
 [ -n "$code" ] && ok "found: $code" || no "no brevo-code TXT on $SUB yet"
