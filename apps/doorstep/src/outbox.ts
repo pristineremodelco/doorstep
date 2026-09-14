@@ -131,6 +131,10 @@ export function permanent (message: string): boolean {
     message.includes ('conversation is closed') ||
     message.includes ('no longer exists') ||
     message.includes ('not your conversation') ||
-    message.includes ('not signed in')
+    message.includes ('not signed in') ||
+    // Too big will be too big on every retry. Left in the queue it sat under
+    // "waiting to send" forever, which looks like a bad signal and is not one.
+    message.includes ('exceeded the maximum allowed size') ||
+    message.includes ('too large')
   )
 }

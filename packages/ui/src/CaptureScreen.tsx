@@ -37,6 +37,7 @@ export function CaptureScreen ({
 
   const [state, setState] = useState<RecorderState> ('idle')
   const [elapsed, setElapsed] = useState (0)
+  const [limit, setLimit] = useState (maxDurationMs)
   const [capture, setCapture] = useState<Capture | null> (null)
   const [reviewUrl, setReviewUrl] = useState<string | null> (null)
   const [error, setError] = useState<string | null> (null)
@@ -64,6 +65,7 @@ export function CaptureScreen ({
         maxDurationMs,
         onState: setState,
         onElapsed: setElapsed,
+        onLimit: setLimit,
         onCapped: () => setCapped (true),
       })
       recorderRef.current = rec
@@ -173,7 +175,7 @@ export function CaptureScreen ({
   // 'stopping' counts, so the row does not vanish for the moment between a lift
   // and the clip being ready.
   const shooting = !reviewing && (state === 'ready' || state === 'recording' || state === 'stopping')
-  const remaining = Math.max (0, maxDurationMs - elapsed)
+  const remaining = Math.max (0, limit - elapsed)
 
   return (
     <div className="capture">
@@ -204,7 +206,7 @@ export function CaptureScreen ({
           <div className="capture-timer">
             <span className="capture-dot" />
             {formatDuration (elapsed)}
-            {remaining < 30_000 && (
+            {remaining < 15_000 && (
               <span className="capture-remaining">
                 {formatDuration (remaining)} left
               </span>
@@ -240,7 +242,7 @@ export function CaptureScreen ({
             <RecordButton
               mode={shutter}
               recording={recording}
-              progress={recording ? elapsed / maxDurationMs : 0}
+              progress={recording ? elapsed / limit : 0}
               onStart={start}
               onStop={stop}
               onPhoto={photo}

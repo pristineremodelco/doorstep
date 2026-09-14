@@ -47,6 +47,8 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
   const [mode, setMode] = useState<CaptureMode> ('video')
   const [state, setState] = useState<RecorderState> ('idle')
   const [elapsed, setElapsed] = useState (0)
+  // Whichever comes first of the time cap and the upload size limit.
+  const [limit, setLimit] = useState (MAX_DURATION_MS)
   const [error, setError] = useState<string | null> (null)
   const [capture, setCapture] = useState<Capture | null> (null)
   const [reviewUrl, setReviewUrl] = useState<string | null> (null)
@@ -66,6 +68,7 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
         selfie,
         onState: setState,
         onElapsed: setElapsed,
+        onLimit: setLimit,
       })
       recorderRef.current = rec
       const stream = await rec.open ()
@@ -226,7 +229,7 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
 
   const recording = state === 'recording'
   const live = state === 'ready' || state === 'recording' || state === 'stopping'
-  const remaining = Math.max (0, MAX_DURATION_MS - elapsed)
+  const remaining = Math.max (0, limit - elapsed)
   const picking = capture !== null
 
   return (
@@ -268,7 +271,7 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
           <div className="capture-timer">
             <span className="capture-dot" />
             {formatDuration (elapsed)}
-            {remaining < 30_000 && (
+            {remaining < 15_000 && (
               <span className="capture-remaining">{formatDuration (remaining)} left</span>
             )}
           </div>
@@ -297,7 +300,7 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
               mode={shutter}
               recording={recording}
               disabled={!live}
-              progress={recording ? elapsed / MAX_DURATION_MS : 0}
+              progress={recording ? elapsed / limit : 0}
               onStart={hold}
               onStop={stop}
               onPhoto={photo}

@@ -5,7 +5,7 @@ import {
 } from '@doorstep/ui'
 import type { Capture } from '@doorstep/core'
 import {
-  FILTERS, MAX_DURATION_MS, VideoRecorder, archiveMessage, formatDuration,
+  FILTERS, MAX_DURATION_MS, MAX_UPLOAD_BYTES, VideoRecorder, archiveMessage, formatDuration,
   listArchivedMessages, listMessages, listReactions, markRead, markWatched,
   mediaUrl, partnerMissing, react, retract, saveToDevice, sendCapture,
   sendFailureMessage, sendText, threadBlocked,
@@ -61,6 +61,8 @@ export function Thread ({
   const [mode, setMode] = useState<CaptureMode> ('video')
   const [state, setState] = useState<RecorderState> ('idle')
   const [elapsed, setElapsed] = useState (0)
+  // Whichever comes first of the time cap and the upload size limit.
+  const [limit, setLimit] = useState (MAX_DURATION_MS)
   const [active, setActive] = useState<string | null> (null)
   const [speed, setSpeed] = useState (1)
   const [note, setNote] = useState ('')
@@ -169,6 +171,7 @@ export function Thread ({
         selfie,
         onState: setState,
         onElapsed: setElapsed,
+        onLimit: setLimit,
       })
       recorderRef.current = rec
       const stream = await rec.open ()
@@ -407,6 +410,11 @@ export function Thread ({
   // original hides behind a subscription.
   const fromLibrary = useCallback (async (file: File) => {
     if (!db) return
+    if (file.size > MAX_UPLOAD_BYTES) {
+      const mb = Math.round (file.size / 1024 / 1024)
+      setError (`That file is ${mb} MB, and the most that can be sent is 45 MB. A shorter video will fit.`)
+      return
+    }
     setBusy (true)
     try {
       const isVideo = file.type.startsWith ('video/')
@@ -727,6 +735,12 @@ export function Thread ({
           <div className="capture-timer">
             <span className="capture-dot" />
             {formatDuration (elapsed)}
+            {/* A recording that stops itself without warning reads as a crash.
+                With the size limit it can end after little more than a minute,
+                so the last half minute is counted down. */}
+            {limit - elapsed < 15_000 && (
+              <span className="capture-remaining">{formatDuration (Math.max (0, limit - elapsed))} left</span>
+            )}
             {zoom !== null && zoomRange.current && zoom > zoomRange.current.min + 0.01 && (
               <span className="capture-remaining">{zoom.toFixed (1)}x</span>
             )}
@@ -927,7 +941,7 @@ export function Thread ({
               mode={shutter}
               recording={recording}
               disabled={state === 'idle' || busy}
-              progress={recording ? elapsed / MAX_DURATION_MS : 0}
+              progress={recording ? elapsed / limit : 0}
               onStart={start}
               onStop={stop}
               onPhoto={photo}

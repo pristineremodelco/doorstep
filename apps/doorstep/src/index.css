@@ -2199,3 +2199,149 @@ p[data-warn="true"] {
 .sheet-help-body { display: flex; flex-direction: column; gap: var(--s-2); }
 .sheet-help-body p { margin: 0; color: var(--ink-quiet); line-height: 1.45; }
 .sheet-help .row { justify-content: flex-end; }
+
+/* ------------------------------------------------- home screen install --- */
+
+/* The title style this borrows was made for "notifications are off", which is
+   a warning and is red. An invitation in red reads as something gone wrong. */
+.install-nudge .nudge-title { gap: var(--s-2); color: var(--ink); }
+.install-nudge-icon { border-radius: 5px; display: block; }
+
+/* The guide sits over everything, including the pager, and holds the page still
+   underneath while it is open. */
+.guide-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fade var(--quick) both;
+}
+
+@media (min-width: 560px) { .guide-backdrop { align-items: center; } }
+
+.guide {
+  width: min(100%, 440px);
+  max-height: 100dvh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4) var(--s-4) calc(var(--s-4) + env(safe-area-inset-bottom));
+  background: var(--raised);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  animation: sheet-rise var(--settle) both;
+}
+
+@media (min-width: 560px) { .guide { border-radius: var(--radius-lg); } }
+
+.guide-top { display: flex; justify-content: space-between; align-items: center; }
+.guide-count { font-size: 13px; color: var(--ink-quiet); font-variant-numeric: tabular-nums; }
+
+.guide-picture {
+  display: grid;
+  place-items: center;
+  min-height: 178px;
+  padding: var(--s-4);
+  border-radius: var(--radius);
+  background: var(--raised-high);
+}
+
+.guide-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.guide-body { display: flex; flex-direction: column; gap: var(--s-2); }
+.guide-body p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--ink-quiet); }
+.install-copy { align-self: flex-start; }
+
+.guide-dots { display: flex; gap: 6px; justify-content: center; }
+.guide-dots span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ink-quiet); opacity: 0.35;
+  transition: opacity var(--quick), transform var(--quick);
+}
+.guide-dots span[data-on="true"] { opacity: 1; background: var(--warm); transform: scale(1.25); }
+
+.guide-nav { display: flex; justify-content: space-between; gap: var(--s-3); }
+.guide-nav .btn { min-width: 96px; }
+.guide-nav [data-invisible="true"] { visibility: hidden; }
+
+.guide-foot { margin: 0; font-size: 12px; color: var(--ink-quiet); text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .guide, .guide-backdrop { animation: none; }
+}
+
+/* Pictures. Plain shapes in the app's own palette; the one thing to tap in each
+   is ringed in the accent colour. */
+.glyph { display: block; flex: 0 0 auto; }
+.glyph-inline { display: inline-block; vertical-align: -3px; width: 15px; height: 15px; }
+
+.mock { width: 100%; max-width: 300px; color: var(--ink); }
+
+.mock-hit {
+  box-shadow: 0 0 0 2px var(--warm), 0 0 0 7px rgba(224, 149, 79, 0.22);
+  animation: hit-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes hit-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--warm), 0 0 0 7px rgba(224, 149, 79, 0.22); }
+  50%      { box-shadow: 0 0 0 2px var(--warm), 0 0 0 11px rgba(224, 149, 79, 0.08); }
+}
+
+@media (prefers-reduced-motion: reduce) { .mock-hit { animation: none; } }
+
+.mock-faint { background: var(--raised); opacity: 0.7; }
+.mock-faint-text { color: var(--ink-quiet); font-size: 12px; }
+
+.mock-bar { display: flex; align-items: center; gap: var(--s-2); }
+.mock-pill {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 6px;
+  height: 40px; padding: 0 14px;
+  border-radius: 999px; background: var(--raised);
+  font-size: 13px; color: var(--ink-quiet);
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.mock-lock { width: 8px; height: 10px; border-radius: 2px; background: var(--ink-quiet); opacity: 0.6; flex: 0 0 auto; }
+.mock-more {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--raised); font-size: 13px; letter-spacing: 1px; font-weight: 700;
+}
+
+.mock-menu { display: flex; flex-direction: column; gap: 6px; }
+.mock-row {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 40px; padding: 0 14px; border-radius: 12px;
+  font-size: 15px;
+}
+.mock-row.mock-hit { background: var(--raised); }
+.mock-row.mock-faint { height: 30px; }
+
+.mock-dialog { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-3); border-radius: 14px; background: var(--raised); }
+.mock-dialog-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
+.mock-dialog-title { font-size: 13px; font-weight: 650; }
+.mock-add { font-size: 14px; font-weight: 700; color: var(--warm); padding: 3px 9px; border-radius: 8px; }
+.mock-dialog-app { display: flex; align-items: center; gap: var(--s-3); }
+.mock-dialog-app img { border-radius: 10px; display: block; }
+.mock-dialog-app > span { display: flex; flex-direction: column; min-width: 0; font-size: 14px; }
+.mock-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 10px; font-size: 14px; }
+.mock-toggle { width: 42px; height: 25px; border-radius: 999px; background: #34c759; position: relative; flex: 0 0 auto; }
+.mock-toggle span { position: absolute; top: 2px; right: 2px; width: 21px; height: 21px; border-radius: 50%; background: #fff; }
+
+.mock-home { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; justify-items: center; max-width: 240px; }
+.mock-app { width: 44px; height: 44px; border-radius: 11px; }
+.mock-app-labelled { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px; border-radius: 14px; font-size: 10px; }
+.mock-app-labelled img { border-radius: 11px; display: block; }
+
+.mock-compass { color: #0a84ff; }

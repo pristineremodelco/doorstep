@@ -14,8 +14,31 @@
  * is stored alongside the file.
  */
 
-/** Longest a single message may run. Short is the point of the format. */
-export const MAX_DURATION_MS = 5 * 60 * 1000
+/**
+ * Longest a single message may run. Short is the point of the format.
+ *
+ * Eighty seconds, and chosen together with the bitrate ceiling below rather
+ * than on its own. It was five minutes, which no clip at the default quality
+ * could ever reach and still upload.
+ */
+export const MAX_DURATION_MS = 80 * 1000
+
+/**
+ * Largest a recording may grow before it is stopped, in bytes.
+ *
+ * The real limit is not the clock, it is the upload. Supabase refuses any
+ * single file over 50 MB on the free plan, whatever the bucket is set to; that
+ * was measured, not assumed: 45 MB went through and 55 MB was refused. At the
+ * default quality that is reached after about a minute and twenty seconds, and
+ * after under a minute on a phone filming at sixty frames a second, so the five
+ * minute cap alone let people record clips that could never be sent. Worse,
+ * they then sat in the outbox retrying forever.
+ *
+ * Stopping on size rather than time means the length adapts to whatever the
+ * camera is actually producing. The margin under 50 MB covers the MP4 index
+ * written when the recording closes.
+ */
+export const MAX_UPLOAD_BYTES = 45 * 1024 * 1024
 
 const PREFERRED_TYPES = [
   'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
@@ -119,10 +142,19 @@ export interface RecorderOptions {
   /** Defaults to mirroring, so the recording matches the preview. */
   selfie?: Facing
   maxDurationMs?: number
+  /** Stops the recording before the file outgrows what can be uploaded. */
+  maxBytes?: number
   onState?: (state: RecorderState) => void
   onElapsed?: (ms: number) => void
   /** Fires when the cap is hit, so the shell can say why it stopped. */
   onCapped?: () => void
+  /**
+   * How long this recording can run, in milliseconds, whichever of the time and
+   * size limits comes first. Estimated from the requested bitrate at the start
+   * and corrected each second from what the camera is really producing, so the
+   * countdown on screen is honest about when the recording will stop.
+   */
+  onLimit?: (ms: number) => void
 }
 
 export class VideoRecorder {
@@ -269,11 +301,34 @@ export class VideoRecorder {
    * bytes on a device that only offered 480p. Roughly 0.08 bits per pixel per
    * frame is the point where H.264 stops looking soft on faces.
    */
+  /**
+   * The video bitrate for this camera, never more than the longest allowed
+   * recording can afford.
+   *
+   * The ceiling is what makes the length limit a promise. Without it the size a
+   * clip reaches depends on the camera: a phone filming at sixty frames asks for
+   * more than half again the bitrate of one at thirty, and would have hit the
+   * upload limit well before the clock did. Sized from the duration and the
+   * upload limit together, the full duration fits at any resolution and frame
+   * rate, so the time cap alone keeps every clip sendable. Most phones film at
+   * thirty and give up about a sixth of their bitrate to this; the difference
+   * does not show on a face at 1080p.
+   *
+   * It does not rely on the size watch in start(), which only sees a recording
+   * grow while the camera keeps delivering chunks. That is a second line, for
+   * an encoder running over its target.
+   *
+   * The 0.92 leaves room for that overshoot inside the upload limit.
+   */
   private videoBitrate (): number {
     const s = this.stream?.getVideoTracks ()[0]?.getSettings ()
     const pixels = (s?.width ?? 1280) * (s?.height ?? 720)
     const fps = s?.frameRate ?? 30
-    return Math.round (Math.min (8_000_000, Math.max (1_200_000, pixels * fps * 0.08)))
+    const wanted = Math.max (1_200_000, pixels * fps * 0.08)
+    const seconds = (this.opts.maxDurationMs ?? MAX_DURATION_MS) / 1000
+    const bytes = this.opts.maxBytes ?? MAX_UPLOAD_BYTES
+    const affordable = (bytes * 8 / seconds) * 0.92 - 128_000
+    return Math.round (Math.min (8_000_000, affordable, wanted))
   }
 
   /**
@@ -390,8 +445,30 @@ export class VideoRecorder {
     this.recorder = new MediaRecorder (source, this.voice
       ? { mimeType: type, audioBitsPerSecond: 128_000 }
       : { mimeType, videoBitsPerSecond: this.videoBitrate (), audioBitsPerSecond: 128_000 })
+    const timeCap = this.opts.maxDurationMs ?? MAX_DURATION_MS
+    const byteCap = this.opts.maxBytes ?? MAX_UPLOAD_BYTES
+    const requested = this.voice ? 128_000 : this.videoBitrate () + 128_000
+    // The first guess, before a single chunk exists, from what was asked for.
+    this.opts.onLimit?.(Math.min (timeCap, (byteCap * 8 / requested) * 1000))
+
+    let bytes = 0
     this.recorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) chunks.push (e.data)
+      if (!e.data || e.data.size === 0) return
+      chunks.push (e.data)
+      bytes += e.data.size
+
+      // Encoders overshoot their target on movement and undershoot on a still
+      // face, so after a couple of seconds the measured rate replaces the guess.
+      const elapsed = Date.now () - this.startedAt
+      if (elapsed > 2000) {
+        const perMs = bytes / elapsed
+        this.opts.onLimit?.(Math.min (timeCap, byteCap / perMs))
+      }
+
+      if (bytes >= byteCap && this.state === 'recording') {
+        this.opts.onCapped?.()
+        void this.stop ().catch (() => undefined)
+      }
     }
     // A timeslice means a crash mid-recording still leaves usable chunks
     // instead of one buffer that was never flushed.
@@ -403,14 +480,13 @@ export class VideoRecorder {
       this.opts.onElapsed?.(Date.now () - this.startedAt)
     }, 100)
 
-    const cap = this.opts.maxDurationMs ?? MAX_DURATION_MS
     this.capTimer = window.setTimeout (() => {
       // Losing the race with a real stop is normal, not an error worth
       // surfacing: the clip is already safely on its way.
       if (this.state !== 'recording') return
       this.opts.onCapped?.()
       void this.stop ().catch (() => undefined)
-    }, cap)
+    }, timeCap)
   }
 
   async stop (): Promise<Capture> {

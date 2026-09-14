@@ -757,6 +757,9 @@ export function sendFailureMessage (e: unknown): string {
   if (raw.includes ('not your conversation')) {
     return 'You are not part of this conversation any more.'
   }
+  if (raw.includes ('exceeded the maximum allowed size') || raw.includes ('too large')) {
+    return 'That is too large to send. Videos can be up to 45 MB.'
+  }
   return 'That did not send. Try again.'
 }
 

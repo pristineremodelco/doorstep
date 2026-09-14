@@ -33,6 +33,7 @@ import { MyCode } from './screens/MyCode'
 import { Threads } from './screens/Threads'
 import { Thread } from './screens/Thread'
 import { QuickRecord } from './screens/QuickRecord'
+import { InstallGuide, InstallNudge } from './InstallGuide'
 import { InviteClaim } from './screens/InviteClaim'
 
 /**
@@ -280,6 +281,7 @@ function Shell ({ recovered }: { recovered: boolean }) {
             <>
               {recovered && <RecoveredNote />}
               <UpdateNudge />
+              <InstallNudge />
               <PushNudge />
               <Threads onOpen={(id, who) => setView ({ name: 'thread', id, who })} />
             </>
@@ -694,22 +696,22 @@ function SettingsScreen ({
           </div>
         </section>
 
-        <Field title="Video quality" help={<p>
-          High is roughly two and a half times the storage for the same minute,
-          kept for as long as you keep it.
-        </p>}>
+        <Field title="Video quality" help={<>
+          <p>High uses about twice the storage of Standard for the same minute.</p>
+          <p>Either way, a video can run up to 80 seconds.</p>
+        </>}>
           <div className="choices">
             <Choice
               checked={settings.quality === 'standard'}
               onSelect={() => onChange ({ ...settings, quality: 'standard' })}
               title="Standard"
-              note="720p. About 16 MB a minute."
+              note="720p. About 17 MB a minute."
             />
             <Choice
               checked={settings.quality === 'high'}
               onSelect={() => onChange ({ ...settings, quality: 'high' })}
               title="High"
-              note="1080p. About 37 MB a minute, and clearer on a face."
+              note="1080p. About 32 MB a minute, and clearer on a face."
             />
           </div>
         </Field>
@@ -1008,7 +1010,9 @@ function PushNudge () {
 
   useEffect (() => { void pushState ().then (setState) }, [])
 
-  if (hidden || state === null || state === 'on' || state === 'unsupported') return null
+  // On an iPhone that has not installed, the install notice already says the
+  // one thing that matters here, so this does not repeat it underneath.
+  if (hidden || state === null || state === 'on' || state === 'unsupported' || state === 'needs-install') return null
 
   const dismiss = () => {
     setHidden (true)
@@ -1044,13 +1048,6 @@ function PushNudge () {
         <p>
           Doorstep is blocked from sending them. To allow it, open your browser
           menu, then Settings, Site settings, Notifications, and allow this site.
-        </p>
-      )}
-
-      {state === 'needs-install' && (
-        <p>
-          On iPhone these need Doorstep on your home screen. Tap the share button
-          in Safari, then Add to Home Screen, and open it from there.
         </p>
       )}
 
@@ -1769,6 +1766,22 @@ function AvatarPicker () {
  * screen, and in a tab the prompt never appears at all, so the state is named
  * rather than left as a button that silently does nothing.
  */
+function InstallFromSettings () {
+  const [open, setOpen] = useState (false)
+  return (
+    <>
+      <p className="muted fine">
+        On iPhone, notifications need Doorstep on your home screen. You will sign
+        in once more inside the app.
+      </p>
+      <button className="btn btn-quiet" onClick={() => setOpen (true)}>
+        Show me how
+      </button>
+      {open && <InstallGuide onClose={() => setOpen (false)} />}
+    </>
+  )
+}
+
 function PushControl () {
   const [state, setState] = useState<PushState | null> (null)
   const [busy, setBusy] = useState (false)
@@ -1778,12 +1791,8 @@ function PushControl () {
   if (state === null) return <p className="muted fine">Checking</p>
 
   if (state === 'needs-install') {
-    return (
-      <p className="muted fine">
-        On iPhone, notifications need Doorstep on your home screen. Tap the share
-        button in Safari, then Add to Home Screen, and open it from there.
-      </p>
-    )
+    // The way back to the guide for anyone who said not now on the list.
+    return <InstallFromSettings />
   }
 
   if (state === 'unsupported') {
