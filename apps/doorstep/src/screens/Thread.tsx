@@ -175,6 +175,19 @@ export function Thread ({
     recorderRef.current?.setFilter (filter)
   }, [filter])
 
+  // The look drawn live, whenever there is one and a camera to draw. A flip or
+  // a reopen passes through idle, so the look is put up again on the new
+  // picture without being asked.
+  const lookHost = useRef<HTMLDivElement> (null)
+  const cameraLive = state !== 'idle'
+  const looking = filter !== 'none'
+  useEffect (() => {
+    const rec = recorderRef.current
+    const host = lookHost.current
+    if (!rec || !host || !cameraLive || !looking) return
+    return rec.previewLook (host)
+  }, [cameraLive, looking])
+
   const open = useCallback (async () => {
     setError (null)
     try {
@@ -739,9 +752,10 @@ export function Thread ({
           playsInline muted autoPlay
           data-hidden={active !== null}
           data-mirror={selfie === 'mirror' && facingUser}
-          // The same steps the recording draws, so the preview is the file.
-          style={filter === 'none' ? undefined : { filter: FILTERS[filter].css }}
         />
+        {/* The live picture through the chosen look, drawn by the recorder
+            over the plain preview. Empty when there is no look. */}
+        <div ref={lookHost} className="vf-look-host" data-hidden={active !== null} aria-hidden="true" />
 
         {focus.ring && (
           <span

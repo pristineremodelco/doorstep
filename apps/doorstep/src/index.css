@@ -940,6 +940,12 @@ body {
    split that makes a video look reversed afterwards. */
 .vf-preview[data-mirror="true"] { transform: scaleX(-1); }
 
+/* Holds the live look. Its canvas is already mirrored when the preview is, so
+   it takes no transform of its own, and it lets taps through to focus. */
+.vf-look-host { position: absolute; inset: 0; pointer-events: none; }
+.vf-look-host[data-hidden="true"] { visibility: hidden; }
+.vf-look { display: block; }
+
 .vf-play { background: #000; object-fit: contain; z-index: 1; }
 
 .vf-voice, .vf-note {

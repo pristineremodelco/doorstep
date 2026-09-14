@@ -152,6 +152,7 @@ export interface RecorderOptions {
 export class VideoRecorder {
   private stream: MediaStream | null = null
   private refocusTimer: number | null = null
+  private previewPainter: LookPainter | null = null
   /** Set only while flipping, so the first open stays a preference. */
   private exactFacing = false
   /**
@@ -679,6 +680,46 @@ export class VideoRecorder {
   setFilter (name: FilterName) {
     this.opts.filter = name
     this.painter?.look.setLook (name)
+    this.previewPainter?.setLook (name)
+  }
+
+  /**
+   * The live picture drawn through the current look, onto a canvas placed in
+   * the given element. Returns the way to take it down again.
+   *
+   * Not a CSS filter on the preview video. Android Chrome can hand a camera
+   * video to the phone's own video layer, which page effects never reach, so a
+   * filter set on the element showed nothing there. A canvas is drawn by the
+   * page, on every phone, and it is drawn by the same code the recording is,
+   * so the preview and the file cannot disagree. Sized to at most 960 on the
+   * long edge: the recording keeps full resolution, and a preview does not
+   * need it.
+   */
+  previewLook (host: HTMLElement): () => void {
+    const video = this.frameSource
+    const track = this.stream?.getVideoTracks ()[0]
+    if (!video || !track) return () => undefined
+    const { width = 1280, height = 720 } = track.getSettings ()
+    const scale = Math.min (1, PREVIEW_LONG_EDGE / Math.max (width, height))
+    const painter = new LookPainter (
+      Math.round (width * scale), Math.round (height * scale),
+      this.opts.filter ?? 'none', this.mirrors ()
+    )
+    painter.canvas.className = 'vf-layer vf-look'
+    host.append (painter.canvas)
+    let raf = 0
+    const paint = () => {
+      painter.draw (video)
+      raf = requestAnimationFrame (paint)
+    }
+    paint ()
+    this.previewPainter = painter
+    return () => {
+      cancelAnimationFrame (raf)
+      painter.canvas.remove ()
+      painter.dispose ()
+      if (this.previewPainter === painter) this.previewPainter = null
+    }
   }
 
   private stopPainting () {
@@ -764,6 +805,9 @@ const STOP_TIMEOUT_MS = 3000
 
 /** Longest to wait for the camera's first frame before allowing a record. */
 const FIRST_FRAME_TIMEOUT_MS = 2500
+
+/** The live look is drawn at most this wide or tall; the recording is not. */
+const PREVIEW_LONG_EDGE = 960
 
 /** How long a tapped focus holds before the camera follows the scene again. */
 const REFOCUS_AFTER_MS = 5000
