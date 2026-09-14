@@ -66,10 +66,8 @@ They come out as:
 
 ## What it will look like
 
-The from address is whichever mailbox you verified, so with Brevo and a Gmail
-address it reads as coming from you rather than from a domain. Brevo also adds a
-small line of its own under the message on the free plan. If either matters
-later, a paid Brevo plan drops the line and Resend with a real domain drops both.
+It arrives from **Doorstep** <hello@doorstep.pristineremodelco.com>, with the
+branded template and no provider footer.
 
 ## Why the email leads with a code
 
