@@ -169,6 +169,7 @@ export interface RecorderOptions {
 
 export class VideoRecorder {
   private stream: MediaStream | null = null
+  private refocusTimer: number | null = null
   /** Set only while flipping, so the first open stays a preference. */
   private exactFacing = false
   /**
@@ -374,16 +375,42 @@ export class VideoRecorder {
     const track = this.stream?.getVideoTracks ()[0]
     if (!track || !this.canFocus ()) return false
     const caps = (track.getCapabilities?.() ?? {}) as { focusMode?: string[] }
-    const mode = caps.focusMode?.includes ('single-shot') ? 'single-shot' : 'continuous'
+    const modes = caps.focusMode ?? []
     const clamp = (n: number) => Math.min (1, Math.max (0, n))
+
+    // The point on its own first. Chrome on Android makes it the camera's focus
+    // and exposure region. It used to go in one call with the focus mode, and a
+    // camera that refused either part refused both, silently.
     try {
       await track.applyConstraints ({
-        advanced: [{ pointsOfInterest: [{ x: clamp (x), y: clamp (y) }], focusMode: mode } as MediaTrackConstraintSet],
+        advanced: [{ pointsOfInterest: [{ x: clamp (x), y: clamp (y) }] } as MediaTrackConstraintSet],
       })
-      return true
     } catch {
       return false
     }
+
+    // Then a sweep over it. Single shot focuses once on the new region. A
+    // camera that only offers continuous is asked for it again, which on most
+    // phones restarts the search now rather than when the scene next changes.
+    const mode = modes.includes ('single-shot') ? 'single-shot' : 'continuous'
+    try {
+      await track.applyConstraints ({ advanced: [{ focusMode: mode } as MediaTrackConstraintSet] })
+    } catch {
+      // The region alone is often enough.
+    }
+
+    // A single shot holds its focus, which is right until the phone moves. After
+    // a few seconds it goes back to following the scene, as a phone's own
+    // camera does.
+    if (mode === 'single-shot' && modes.includes ('continuous')) {
+      if (this.refocusTimer !== null) window.clearTimeout (this.refocusTimer)
+      this.refocusTimer = window.setTimeout (() => {
+        this.refocusTimer = null
+        if (track.readyState !== 'live') return
+        void track.applyConstraints ({ advanced: [{ focusMode: 'continuous' } as MediaTrackConstraintSet] }).catch (() => undefined)
+      }, REFOCUS_AFTER_MS)
+    }
+    return true
   }
 
   /** Which way the camera faces, so a tap on a mirrored preview can be flipped. */
@@ -694,6 +721,8 @@ export class VideoRecorder {
   }
 
   private clearTimers () {
+    if (this.refocusTimer !== null) window.clearTimeout (this.refocusTimer)
+    this.refocusTimer = null
     if (this.ticker !== null) window.clearInterval (this.ticker)
     if (this.capTimer !== null) window.clearTimeout (this.capTimer)
     this.ticker = null
@@ -740,6 +769,9 @@ const STOP_TIMEOUT_MS = 3000
 
 /** Longest to wait for the camera's first frame before allowing a record. */
 const FIRST_FRAME_TIMEOUT_MS = 2500
+
+/** How long a tapped focus holds before the camera follows the scene again. */
+const REFOCUS_AFTER_MS = 5000
 
 /** How long a phone gets to release one camera before the other is asked for again. */
 const FLIP_RETRY_MS = 400

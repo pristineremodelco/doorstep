@@ -2900,9 +2900,12 @@ p[data-warn="true"] {
   font-size: 15px;
 }
 
-/* Destructive, said in colour on an otherwise ordinary button. */
-.btn-danger { color: var(--live-solid); }
-.btn-danger .icon { color: var(--live-solid); }
+/* Destructive, said in colour on an otherwise ordinary button. Its own name:
+   this was a second .btn-danger, and .btn-danger already means a red button
+   with dark text, so the two together set red text on red and the word
+   vanished from every button using either. */
+.btn-destructive { color: var(--live-solid); }
+.btn-destructive .icon { color: var(--live-solid); }
 
 [data-invisible="true"] { visibility: hidden; }
 
@@ -3169,3 +3172,23 @@ p[data-warn="true"] {
 .avatar-lg[data-letters="2"] { font-size: 22px; }
 .choices-row .choice { padding-left: var(--s-2); padding-right: var(--s-2); }
 .choices-row .choice-title { white-space: nowrap; }
+
+/* Said once, on the first tap, when the camera has no focus to offer. */
+.focus-note {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: var(--s-4);
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(16, 14, 13, 0.72);
+  color: #f4efe8;
+  font-size: 13px;
+  white-space: nowrap;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  animation: fade var(--settle) both;
+}

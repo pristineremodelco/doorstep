@@ -16,7 +16,7 @@ import { db } from '../db'
 import { asCapture, enqueue, markFailed, pending, permanent, remove, type Pending } from '../outbox'
 import { clearDraft, draftAsCapture, loadDraft, saveDraft } from '../drafts'
 import { ChatView } from './ChatView'
-import { pointInPicture } from '../focus'
+import { useTapToFocus } from '../focus'
 
 /**
  * A conversation, which is also the camera.
@@ -89,9 +89,6 @@ export function Thread ({
   // to mirror whenever the setting was on, so turning to the back camera showed
   // a sign behind you backwards on screen while the recording came out right.
   const [facingUser, setFacingUser] = useState (true)
-  // Where a tap focused, drawn briefly as a ring. Only set when the camera
-  // actually accepted the focus, which an iPhone never does from a website.
-  const [focusRing, setFocusRing] = useState<{ x: number; y: number; key: number } | null> (null)
   const zoomRange = useRef<{ min: number; max: number; step: number } | null> (null)
 
   const recording = state === 'recording'
@@ -416,18 +413,7 @@ export function Thread ({
     }
   }, [])
 
-  const tapToFocus = useCallback (async (e: React.MouseEvent<HTMLDivElement>) => {
-    const rec = recorderRef.current
-    const video = previewRef.current
-    if (!rec || !video || !rec.canFocus ()) return
-    const mirrored = selfie === 'mirror' && rec.facingUser
-    const point = pointInPicture (e, video, mirrored)
-    if (!point) return
-    if (await rec.focusAt (point.x, point.y)) {
-      const box = e.currentTarget.getBoundingClientRect ()
-      setFocusRing ({ x: e.clientX - box.left, y: e.clientY - box.top, key: Date.now () })
-    }
-  }, [selfie])
+  const focus = useTapToFocus (recorderRef, previewRef, selfie === 'mirror')
 
   const say = useCallback (async (e: React.FormEvent) => {
     e.preventDefault ()
@@ -735,7 +721,7 @@ export function Thread ({
         onClick={(e) => {
           // Only on the live picture: not while a message is playing over it, or
           // a take is waiting to be sent.
-          if (active === null && !pendingSend) void tapToFocus (e)
+          if (active === null && !pendingSend) void focus.onTap (e)
         }}
       >
         <video
@@ -746,15 +732,16 @@ export function Thread ({
           data-mirror={selfie === 'mirror' && facingUser}
         />
 
-        {focusRing && (
+        {focus.ring && (
           <span
-            key={focusRing.key}
+            key={focus.ring.key}
             className="focus-ring"
-            style={{ left: focusRing.x, top: focusRing.y }}
-            onAnimationEnd={() => setFocusRing (null)}
+            style={{ left: focus.ring.x, top: focus.ring.y }}
+            onAnimationEnd={focus.clearRing}
             aria-hidden="true"
           />
         )}
+        {focus.note && <p className="focus-note" role="status">{focus.note}</p>}
 
         {/* In chat layout the camera is a layer over the conversation, so it
             needs its own way out, where the word Back used to sit at the bottom. */}

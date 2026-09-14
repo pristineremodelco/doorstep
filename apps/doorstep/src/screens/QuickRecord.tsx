@@ -9,7 +9,7 @@ import {
 import { db } from '../db'
 import { Avatar } from '../Avatar'
 import { enqueue, markFailed, permanent, remove, type Pending } from '../outbox'
-import { pointInPicture } from '../focus'
+import { useTapToFocus } from '../focus'
 
 /**
  * Open the app, camera already on, choose who it goes to afterwards.
@@ -53,7 +53,6 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
   const [limit, setLimit] = useState (MAX_DURATION_MS)
   const [error, setError] = useState<string | null> (null)
   const [facingUser, setFacingUser] = useState (true)
-  const [focusRing, setFocusRing] = useState<{ x: number; y: number; key: number } | null> (null)
   const [capture, setCapture] = useState<Capture | null> (null)
   const [reviewUrl, setReviewUrl] = useState<string | null> (null)
   const [rows, setRows] = useState<ThreadSummary[] | null> (null)
@@ -206,17 +205,7 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
   // Focus where the picture was tapped, on a camera that allows it. Chrome on
   // Android does on most phones; Safari on an iPhone never does from a website,
   // and then nothing is drawn rather than a ring that did not focus anything.
-  const tapToFocus = useCallback (async (e: React.MouseEvent<HTMLDivElement>) => {
-    const rec = recorderRef.current
-    const video = previewRef.current
-    if (!rec || !video || !rec.canFocus ()) return
-    const point = pointInPicture (e, video, selfie === 'mirror' && rec.facingUser)
-    if (!point) return
-    if (await rec.focusAt (point.x, point.y)) {
-      const box = e.currentTarget.getBoundingClientRect ()
-      setFocusRing ({ x: e.clientX - box.left, y: e.clientY - box.top, key: Date.now () })
-    }
-  }, [selfie])
+  const focus = useTapToFocus (recorderRef, previewRef, selfie === 'mirror')
 
   const discard = useCallback (() => {
     setCapture (null)
@@ -272,7 +261,7 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
     <main className="screen quick">
       <div
         className="capture-stage quick-stage"
-        onClick={(e) => { if (!picking && mode !== 'voice') void tapToFocus (e) }}
+        onClick={(e) => { if (!picking && mode !== 'voice') void focus.onTap (e) }}
       >
         <video
           ref={previewRef}
@@ -283,15 +272,16 @@ export function QuickRecord ({ shutter, quality, selfie, onMessages, onOpen }: P
           data-hidden={picking || mode === 'voice'}
           data-mirror={selfie === 'mirror' && facingUser}
         />
-        {focusRing && (
+        {focus.ring && (
           <span
-            key={focusRing.key}
+            key={focus.ring.key}
             className="focus-ring"
-            style={{ left: focusRing.x, top: focusRing.y }}
-            onAnimationEnd={() => setFocusRing (null)}
+            style={{ left: focus.ring.x, top: focus.ring.y }}
+            onAnimationEnd={focus.clearRing}
             aria-hidden="true"
           />
         )}
+        {focus.note && <p className="focus-note" role="status">{focus.note}</p>}
         {mode === 'voice' && !picking && (
           <div className="quick-voice"><p className="muted">Voice only</p></div>
         )}
@@ -421,7 +411,7 @@ function RecipientPicker ({
             Done
           </button>
         ) : (
-          <button className="btn btn-secondary btn-compact btn-danger" onClick={onDiscard}>
+          <button className="btn btn-secondary btn-compact btn-destructive" onClick={onDiscard}>
             <Icon name="trash" size={18} />
             Delete
           </button>
