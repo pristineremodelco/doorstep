@@ -188,6 +188,11 @@ which need a phone.
 The app is in use on real iPhones and Android phones, so the ordinary paths
 have had real hardware. What has not:
 
+- **Looks on an iPhone.** Drawn in WebGL on a canvas over the preview and into
+  the recording, confirmed on a Galaxy S23 in the home screen app. The same
+  code runs on an iPhone, where it has not been tried. A CSS filter on the
+  video element does not work on Android: Chrome can put a camera video on
+  the phone's own video layer, which page effects never reach.
 - **Tap to focus on Android.** Written for Chrome on Android, which exposes
   focus on most phones. An iPhone gives a website no focus control, so nothing
   happens there by design.
